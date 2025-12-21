@@ -57,6 +57,17 @@ jobs:
         run: |
           pytest -m infrastructure
 
+      - name: Upload Test Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: infrastructure-test-reports
+          path: |
+            latency_report.png
+            performance_summary.png
+            summary_stats.json
+          if-no-files-found: ignore
+
   build-and-push:
     name: 🏗️ Build & Push Image
     needs: [static-analysis, unit-tests]
@@ -98,4 +109,16 @@ jobs:
 
       - name: Run Validation Tests in Docker
         run: |
-          docker run --rm ghcr.io/${{ github.repository }}:latest pytest -m "not infrastructure"
+          # We need to mount the current directory to collect the artifacts generated inside the container
+          docker run --rm -v ${{ github.workspace }}:/app_output ghcr.io/${{ github.repository }}:latest bash -c "pytest -m 'not infrastructure' && cp latency_report.png performance_summary.png summary_stats.json /app_output/"
+
+      - name: Upload Validation Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-test-reports
+          path: |
+            latency_report.png
+            performance_summary.png
+            summary_stats.json
+          if-no-files-found: warn
