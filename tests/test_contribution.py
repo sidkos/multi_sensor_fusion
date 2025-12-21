@@ -33,4 +33,6 @@ def test_sensor_contribution_balance(
     balance = KPICalculator.calculate_sensor_contribution_balance(fused_data)
 
     logger.info(f"Additional KPI - Sensor Contribution: {balance}")
-    assert balance["both"] + balance["camera_only"] + balance["radar_only"] > 0
+    assert (
+        balance["both"] + balance["camera_only"] + balance["radar_only"] > 0
+    ), "Total sensor contribution balance must be greater than zero"

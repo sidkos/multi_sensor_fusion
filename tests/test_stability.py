@@ -32,4 +32,4 @@ def test_confidence_stability(
     stability = KPICalculator.calculate_confidence_stability(fused_data)
 
     logger.info(f"Additional KPI - Confidence Stability (StdDev): {stability:.4f}")
-    assert stability >= 0
+    assert stability >= 0, f"Confidence stability (StdDev) {stability} cannot be negative"

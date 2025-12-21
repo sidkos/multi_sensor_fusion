@@ -44,8 +44,8 @@ def test_fusion_kpis(
         if isinstance(latency, (int, float)) and isinstance(jitter, (int, float)):
             latencies.append(float(latency))
             jitters.append(float(jitter))
-            assert latency < FUSION_LATENCY_MAX
-            assert jitter <= FUSION_JITTER_MAX
+            assert latency < FUSION_LATENCY_MAX, f"Fusion latency {latency} exceeded threshold {FUSION_LATENCY_MAX}"
+            assert jitter <= FUSION_JITTER_MAX, f"Fusion jitter {jitter} exceeded threshold {FUSION_JITTER_MAX}"
 
             consistency = KPICalculator.calculate_decision_consistency(frame)
             consistencies.append(consistency)
@@ -62,4 +62,6 @@ def test_fusion_kpis(
 
     avg_consistency = sum(consistencies) / len(consistencies) if consistencies else 0
     logger.info(f"Fusion Consistency - Avg: {avg_consistency:.4f} (Threshold: {FUSION_CONSISTENCY_MIN})")
-    assert avg_consistency >= FUSION_CONSISTENCY_MIN
+    assert (
+        avg_consistency >= FUSION_CONSISTENCY_MIN
+    ), f"Average fusion consistency {avg_consistency} below threshold {FUSION_CONSISTENCY_MIN}"

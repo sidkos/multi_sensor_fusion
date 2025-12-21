@@ -48,7 +48,7 @@ def test_camera_per_frame_kpis(
 
         if isinstance(val, (int, float)):
             values.append(float(val))
-            assert val < threshold
+            assert val < threshold, f"Camera {kpi_name} {val} exceeded threshold {threshold}"
 
     if values:
         avg_val = sum(values) / len(values)
@@ -74,4 +74,4 @@ def test_camera_drop_rate(
 
     drop_rate = KPICalculator.calculate_data_drop_rate(camera_data, expected_ts)
     logger.info(f"Camera Drop Rate: {drop_rate:.4f} (Threshold: {CAMERA_DATA_DROP_MAX})")
-    assert drop_rate < CAMERA_DATA_DROP_MAX
+    assert drop_rate < CAMERA_DATA_DROP_MAX, f"Camera drop rate {drop_rate} exceeded threshold {CAMERA_DATA_DROP_MAX}"

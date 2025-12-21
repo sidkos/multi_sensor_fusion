@@ -35,6 +35,6 @@ def test_spatial_alignment_error(
     if fused_data:
         spatial_err = KPICalculator.calculate_spatial_alignment_error(fused_data[0])
         logger.info(f"Additional KPI - Spatial Alignment Error (Frame 0): {spatial_err:.4f}")
-        assert spatial_err >= 0
+        assert spatial_err >= 0, f"Spatial alignment error {spatial_err} cannot be negative"
     else:
         pytest.skip("No fused data available to check spatial alignment")

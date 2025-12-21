@@ -48,7 +48,7 @@ def test_radar_per_frame_kpis(
 
         if isinstance(val, (int, float)):
             values.append(float(val))
-            assert val < threshold
+            assert val < threshold, f"Radar {kpi_name} {val} exceeded threshold {threshold}"
 
     if values:
         avg_val = sum(values) / len(values)
@@ -75,4 +75,4 @@ def test_radar_drop_rate(
     # Aggregate drop rate
     drop_rate = KPICalculator.calculate_data_drop_rate(radar_data, expected_ts)
     logger.info(f"Radar Drop Rate: {drop_rate:.4f} (Threshold: {RADAR_DATA_DROP_MAX})")
-    assert drop_rate < RADAR_DATA_DROP_MAX
+    assert drop_rate < RADAR_DATA_DROP_MAX, f"Radar drop rate {drop_rate} exceeded threshold {RADAR_DATA_DROP_MAX}"
