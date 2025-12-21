@@ -107,10 +107,6 @@ jobs:
 
       - name: Run Validation Tests in Docker
         run: |
-          # We need to mount the current directory to collect the artifacts generated inside the container
-          # We also ensure the runner user has permissions to the workspace files created by the container
-          # We capture the exit code of pytest to ensure the step fails if tests fail, 
-          # but we still copy the reports regardless.
           docker run --rm -v ${{ github.workspace }}:/app_output ghcr.io/${{ github.repository }}:latest bash -c "pytest -m 'not infrastructure'; EXIT_CODE=\$?; cp -r reports/ /app_output/ && chmod -R 666 /app_output/reports/; exit \$EXIT_CODE"
           ls -R reports/
 
