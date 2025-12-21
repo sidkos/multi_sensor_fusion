@@ -47,7 +47,7 @@ def test_fusion_per_frame_kpis(
             val = frame.latency_ms
         elif kpi_name == "jitter":
             val = frame.data_alignment_jitter_ms
-        else:  # consistency
+        else:
             val = KPICalculator.calculate_decision_consistency(frame)
 
         values.append(float(val))

@@ -15,16 +15,18 @@ from src.models import (
     RadarFrame,
     RadarPoint,
 )
+from src.models.types import SensorData
 
-# Define types for sensor data
-JSONValue = Union[str, int, float, bool, None, Dict[str, "JSONValue"], List["JSONValue"]]
-SensorData = Dict[str, JSONValue]
 AlignedFrame = Dict[str, Optional[Union[RadarFrame, CameraFrame, FusedFrame, int]]]
 
 
 class DataLoader:
     """
     Handles data ingestion and temporal alignment for multiple sensor modalities.
+
+    This class provides tools to load raw sensor data from JSONL files and convert
+    them into structured Python objects. It also handles the temporal alignment
+    between raw sensor frames and late fusion output.
     """
 
     @staticmethod
@@ -32,30 +34,44 @@ class DataLoader:
         """Loads a JSONL file and returns a list of dictionaries.
 
         Args:
-            filepath (str): Path to the .jsonl file.
+            filepath (str): Path to the .jsonl file to be read.
 
         Returns:
-            list: List of data dictionaries, with None for malformed lines.
+            List[Optional[SensorData]]: List of data dictionaries, where each
+                dictionary represents a line in the file. Returns None for lines
+                that are not valid JSON.
 
         Raises:
-            FileNotFoundError: If the file does not exist.
+            FileNotFoundError: If the specified file does not exist.
         """
         if not os.path.exists(filepath):
             raise FileNotFoundError(f"File not found: {filepath}")
+
         data: List[Optional[SensorData]] = []
+
         with open(filepath, "r") as f:
             for line in f:
                 if line.strip():
                     try:
                         data.append(json.loads(line))
                     except json.JSONDecodeError:
-                        # Mark as malformed for data_drop_rate calculation
                         data.append(None)
         return data
 
     @staticmethod
     def load_radar_data(filepath: str) -> List[Optional[RadarFrame]]:
-        """Loads radar data and returns a list of RadarFrame objects."""
+        """Loads radar data and returns a list of RadarFrame objects.
+
+        Parses the JSONL file and maps each valid entry to a RadarFrame,
+        including all nested RadarPoint objects.
+
+        Args:
+            filepath (str): Path to the radar_data.jsonl file.
+
+        Returns:
+            List[Optional[RadarFrame]]: A list of RadarFrame objects, with None
+                at indices where the input was malformed.
+        """
         raw_data = DataLoader.load_jsonl(filepath)
         frames: List[Optional[RadarFrame]] = []
         for item in raw_data:
@@ -100,7 +116,18 @@ class DataLoader:
 
     @staticmethod
     def load_camera_data(filepath: str) -> List[Optional[CameraFrame]]:
-        """Loads camera data and returns a list of CameraFrame objects."""
+        """Loads camera data and returns a list of CameraFrame objects.
+
+        Parses the JSONL file and maps each valid entry to a CameraFrame,
+        including 3D bounding boxes for all detected objects.
+
+        Args:
+            filepath (str): Path to the camera_data.jsonl file.
+
+        Returns:
+            List[Optional[CameraFrame]]: A list of CameraFrame objects, with None
+                at indices where the input was malformed.
+        """
         raw_data = DataLoader.load_jsonl(filepath)
         frames: List[Optional[CameraFrame]] = []
         for item in raw_data:
@@ -138,7 +165,19 @@ class DataLoader:
 
     @staticmethod
     def load_fused_data(filepath: str) -> List[Optional[FusedFrame]]:
-        """Loads fused data and returns a list of FusedFrame objects."""
+        """Loads fused data and returns a list of FusedFrame objects.
+
+        Parses the JSONL file and maps each entry to a FusedFrame. This includes
+        the fused object classification, confidence scores, and reference to
+        the source data from both sensors.
+
+        Args:
+            filepath (str): Path to the fused_data.jsonl file.
+
+        Returns:
+            List[Optional[FusedFrame]]: A list of FusedFrame objects, with None
+                at indices where the input was malformed.
+        """
         raw_data = DataLoader.load_jsonl(filepath)
         frames: List[Optional[FusedFrame]] = []
         for item in raw_data:
@@ -199,7 +238,22 @@ class DataLoader:
         camera_data: List[Optional[CameraFrame]],
         fused_data: List[Optional[FusedFrame]],
     ) -> List[AlignedFrame]:
-        """Aligns radar and camera frames with fusion output using timestamp logic."""
+        """Aligns radar and camera frames with fusion output using t+1 logic.
+
+        The fusion module output at timestamp T corresponds to the sensor inputs
+        from timestamp T - 100ms (the previous frame at 10 FPS). This method
+        creates a synchronized view where each entry contains the fusion result
+        and its corresponding source sensor frames.
+
+        Args:
+            radar_data (List[Optional[RadarFrame]]): List of loaded radar frames.
+            camera_data (List[Optional[CameraFrame]]): List of loaded camera frames.
+            fused_data (List[Optional[FusedFrame]]): List of loaded fusion frames.
+
+        Returns:
+            List[AlignedFrame]: A list of dictionaries, where each dictionary
+                contains 'timestamp', 'fused', 'radar', and 'camera' keys.
+        """
         radar_map = {item.timestamp: item for item in radar_data if item}
         camera_map = {item.timestamp: item for item in camera_data if item}
 

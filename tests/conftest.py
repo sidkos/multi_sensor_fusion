@@ -20,10 +20,18 @@ logger = logging.getLogger(__name__)
 def loaded_data() -> Dict[str, Any]:
     """Session-scoped fixture that loads radar, camera, and fusion data.
 
-    Provides expected timestamps for data drop rate calculations.
+    This fixture provides the core dataset used across all performance tests.
+    It includes the actual sensor and fusion frames as well as lists of
+    expected timestamps for each modality, which are critical for calculating
+    data drop rates.
 
     Returns:
-        dict: Dictionary containing loaded data and expected timestamp lists.
+        Dict[str, Any]: A dictionary containing:
+            - "radar" (List[RadarFrame]): Parsed radar data.
+            - "camera" (List[CameraFrame]): Parsed camera data.
+            - "fused" (List[FusedFrame]): Parsed fusion output.
+            - "expected_radar_ts" (List[int]): Theoretical radar timestamps.
+            - "expected_fused_ts" (List[int]): Theoretical fusion timestamps.
     """
     return load_test_data()
 

@@ -14,8 +14,8 @@ from src.models import BaseFrame, RadarFrame
 logger = logging.getLogger(__name__)
 
 RADAR_LATENCY_MAX = 50
-RADAR_ERROR_RATE_MAX = 0.001  # 0.1%
-RADAR_DATA_DROP_MAX = 0.005  # 0.5%
+RADAR_ERROR_RATE_MAX = 0.001
+RADAR_DATA_DROP_MAX = 0.005
 
 
 @pytest.mark.radar

@@ -1,8 +1,5 @@
 #!/bin/bash
-
-# Pre-commit script to run all checks
-
-set -e  # Exit on first failure
+set -e
 
 echo "Fixing imports with isort..."
 isort .

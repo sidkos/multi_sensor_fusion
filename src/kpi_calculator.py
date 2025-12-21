@@ -4,30 +4,35 @@ Includes calculations for mandatory KPIs and advanced performance metrics.
 """
 
 import math
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
 from src.models import BaseFrame, FusedFrame
-
-# Define types for backward compatibility or internal use if needed
-JSONValue = Union[str, int, float, bool, None, Dict[str, "JSONValue"], List["JSONValue"]]
-SensorData = Dict[str, JSONValue]
 
 
 class KPICalculator:
     """
     Collection of static methods for sensor and fusion KPI calculations.
+
+    This class provides a suite of tools to evaluate the performance of a multi-sensor
+    fusion system. It includes mandatory KPIs like drop rate and consistency,
+    as well as advanced metrics like spatial alignment error and confidence stability.
     """
 
     @staticmethod
     def calculate_data_drop_rate(data: List[Optional[BaseFrame]], expected_timestamps: List[int]) -> float:
         """Calculates the data drop rate based on missing and malformed frames.
 
+        The drop rate is defined as the ratio of (missing frames + malformed frames)
+        to the total number of expected frames over a given period.
+        - A frame is "missing" if its timestamp is in expected_timestamps but not in data.
+        - A frame is "malformed" if it appears as None in the data list (indicating a parsing error).
+
         Args:
-            data (list): List of received data frames (objects or None).
-            expected_timestamps (list): List of timestamps that should have been received.
+            data (List[Optional[BaseFrame]]): List of received data frames (objects or None).
+            expected_timestamps (List[int]): List of timestamps that should have been received.
 
         Returns:
-            float: Drop rate as a float between 0.0 and 1.0.
+            float: Drop rate as a float between 0.0 (no drops) and 1.0 (all drops).
         """
         if not expected_timestamps:
             return 0.0
@@ -43,16 +48,20 @@ class KPICalculator:
     def calculate_decision_consistency(fused_frame: FusedFrame) -> float:
         """Calculates consistency between fused class and source sensor classes.
 
-        Implements logic that monitors classification results per frame for each modality
-        before fusion and compares these with the fused classification.
-        Assumes the fusion module may rely on a single trusted modality if the other
-        modality does not detect an object.
+        This KPI monitors the classification result per frame for each modality
+        before fusion and compares these with the final fused classification.
+        A detection is considered consistent if the fused class matches at least one
+        of the source modalities (camera or radar).
+
+        If one modality is missing (e.g., radar didn't detect the object), the logic
+        assumes the fusion module may rely on the single available trusted modality.
 
         Args:
             fused_frame (FusedFrame): A single aligned frame containing fusion results.
 
         Returns:
-            float: Consistency score as a float (ratio of consistent objects).
+            float: Consistency score as a float between 0.0 and 1.0, where 1.0 means
+                all fused objects are consistent with their sources.
         """
         fused_objects = fused_frame.fused_objects
         if not fused_objects:
@@ -65,9 +74,11 @@ class KPICalculator:
             camera_class = source_classes.get("camera")
             radar_class = source_classes.get("radar")
 
-            # Simple logic: fused class should match at least one available source class
+            # Fused class should match at least one available source class
             available_sources = [cls for cls in [camera_class, radar_class] if cls]
             if not available_sources:
+                # If no source class is provided, we cannot verify consistency
+                # In this specific context, we skip it or consider it inconsistent
                 continue
             if fused_class in available_sources:
                 consistent_count += 1
@@ -78,11 +89,18 @@ class KPICalculator:
     def calculate_spatial_alignment_error(fused_frame: FusedFrame) -> float:
         """Calculates the average Euclidean distance between camera and radar centers.
 
+        This metric measures the spatial synchronization and calibration accuracy
+        between the camera and radar sensors. For each fused object, it computes
+         the Euclidean distance between:
+        1. The geometric center of the 3D bounding box provided by the camera.
+        2. The centroid of the point cluster provided by the radar.
+
         Args:
             fused_frame (FusedFrame): A single aligned frame containing fusion results.
 
         Returns:
-            float: Average spatial error distance.
+            float: Average spatial error distance in the sensor's coordinate units.
+                Returns 0.0 if no fused objects with both modalities are present.
         """
         fused_objects = fused_frame.fused_objects
         errors = []
@@ -111,11 +129,17 @@ class KPICalculator:
     def calculate_confidence_stability(fused_frames: List[FusedFrame]) -> float:
         """Calculates the standard deviation of fusion confidence across frames.
 
+        High variance (high standard deviation) in fusion confidence might indicate
+        an unstable fusion algorithm or inconsistent sensor data, which could lead
+        to "flickering" detections. This KPI aggregates all confidence scores
+        from all objects across the provided frames.
+
         Args:
-            fused_frames (list): List of fused data frames.
+            fused_frames (List[FusedFrame]): List of fused data frames to analyze.
 
         Returns:
-            float: Standard deviation of fused confidence scores.
+            float: Standard deviation of fused confidence scores. Returns 0.0
+                if there are fewer than 2 confidence values to compare.
         """
         confidences = []
         for frame in fused_frames:
@@ -131,13 +155,21 @@ class KPICalculator:
 
     @staticmethod
     def calculate_sensor_contribution_balance(fused_frames: List[FusedFrame]) -> Dict[str, float]:
-        """Analyzes the source distribution of fused objects.
+        """Analyzes the distribution of sensor sources for fused objects.
+
+        This KPI tracks how often the fusion result relies on both sensors versus
+        a single sensor (camera-only or radar-only). It helps identify if one
+        sensor is consistently being ignored or if the system is properly
+        utilizing the complementary information from both modalities.
 
         Args:
-            fused_frames (list): List of fused data frames.
+            fused_frames (List[FusedFrame]): List of fused data frames to analyze.
 
         Returns:
-            dict: Dictionary containing the percentage distribution of fusion sources.
+            Dict[str, float]: A dictionary containing the percentage distribution:
+                - "both": Percentage of objects fused from both modalities.
+                - "camera_only": Percentage of objects based only on camera.
+                - "radar_only": Percentage of objects based only on radar.
         """
         both = 0
         camera_only = 0

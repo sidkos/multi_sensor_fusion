@@ -26,8 +26,19 @@ def generate_report(
 ) -> None:
     """Generates visual and text reports from provided or loaded data.
 
-    If data is not provided, it loads it from default paths.
-    Calculates aggregate metrics and saves them to the specified output_dir.
+    This function produces a set of Matplotlib plots and a JSON summary file
+    representing the system's performance. If data lists are not provided,
+    it defaults to loading them from the standard dataset paths.
+
+    Args:
+        radar_data (Optional[List[RadarFrame]]): List of radar frames. Defaults to None.
+        camera_data (Optional[List[CameraFrame]]): List of camera frames. Defaults to None.
+        fused_data (Optional[List[FusedFrame]]): List of fused frames. Defaults to None.
+        test_results (Optional[Dict[str, Any]]): Statistics from pytest execution. Defaults to None.
+        output_dir (str): Directory where artifacts will be saved. Defaults to "reports".
+
+    Returns:
+        None
     """
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)

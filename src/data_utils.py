@@ -12,12 +12,22 @@ from src.models import CameraFrame, FusedFrame, RadarFrame
 def load_test_data() -> (
     Dict[str, Union[List[Optional[RadarFrame]], List[Optional[CameraFrame]], List[Optional[FusedFrame]], List[int]]]
 ):
-    """Loads radar, camera, and fusion data for testing.
+    """Loads radar, camera, and fusion data from the data directory.
+
+    This utility attempts to locate the .jsonl datasets in the project's 'data/' folder.
+    It returns the parsed objects for radar points, camera bounding boxes, and
+    fused objects, along with the theoretical expected timestamps for drop rate analysis.
 
     Returns:
-        dict: Dictionary containing loaded data and expected timestamp lists.
+        Dict[str, Union[List[Optional[RadarFrame]], List[Optional[CameraFrame]], List[Optional[FusedFrame]], List[int]]]:
+            A dictionary containing:
+            - "radar": List of RadarFrame objects or None for malformed lines.
+            - "camera": List of CameraFrame objects or None.
+            - "fused": List of FusedFrame objects or None.
+            - "expected_radar_ts": Expected timestamps for sensors (1000-10900).
+            - "expected_fused_ts": Expected timestamps for fusion (1100-11000).
     """
-    # Use paths relative to the project root
+
     radar_path = "data/radar_data_with_kpis.jsonl"
     camera_path = "data/camera_data_with_kpis.jsonl"
     fused_path = "data/fused_data_with_kpis.jsonl"
