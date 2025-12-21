@@ -129,7 +129,7 @@ Before contributing, run the pre-commit suite to ensure compliance with the proj
 ```
 
 ## KPI Test Frequency Justification
-To optimize the multidisciplinary development lifecycle at Niart, we apply a tiered testing strategy:
+To optimize the multidisciplinary development lifecycle, we apply a tiered testing strategy:
 
 | Frequency | KPIs Included | Justification |
 | :--- | :--- | :--- |
