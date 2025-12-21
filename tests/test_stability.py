@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 @pytest.mark.stability
-@pytest.mark.additional
+@pytest.mark.extended_kpis
 def test_confidence_stability(
     loaded_data: Dict[str, Any],
 ) -> None:
@@ -31,5 +31,5 @@ def test_confidence_stability(
     fused_data: List[FusedFrame] = [frame for frame in fused_data_raw if isinstance(frame, FusedFrame)]
     stability = KPICalculator.calculate_confidence_stability(fused_data)
 
-    logger.info(f"Additional KPI - Confidence Stability (StdDev): {stability:.4f}")
+    logger.info(f"KPI - Confidence Stability (StdDev): {stability:.4f}")
     assert stability >= 0, f"Confidence stability (StdDev) {stability} cannot be negative"

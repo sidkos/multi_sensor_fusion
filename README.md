@@ -12,7 +12,7 @@ This project validates the performance and consistency of a sensor fusion module
     - **Data Drop Rate**: Detects missing or corrupted frames over the 10s recording window (< 0.5%).
     - **Alignment Jitter**: Measures the temporal precision of data synchronization (<= 5ms).
     - **Decision Consistency**: Compares fused classifications against source sensor modality decisions (>= 0.95).
-- **Advanced Performance Metrics (Additional KPIs)**:
+- **Advanced Performance Metrics (Extended KPIs)**:
     - **Confidence Stability Score**: Calculates the standard deviation of fusion confidence to detect algorithmic instability.
     - **Spatial Alignment Error**: Measures the Euclidean distance between camera 3D bounding box centers and radar point clusters to detect calibration drift.
     - **Sensor Contribution Balance**: Analyzes the ratio of objects fused from both sensors vs. single-sensor detections to identify "sensor starvation."
@@ -22,7 +22,7 @@ This project validates the performance and consistency of a sensor fusion module
 ## Project Structure
 - `src/models/`: Strongly typed data structures for all sensor modalities.
 - `src/data_loader.py`: Logic for ingestion, parsing, and temporal alignment.
-- `src/kpi_calculator.py`: Implementation of all mandatory and additional KPI algorithms.
+- `src/kpi_calculator.py`: Implementation of all mandatory and extended KPI algorithms.
 - `src/report_generator.py`: Visualization engine and statistics aggregator.
 - `tests/`: Comprehensive Pytest suite, categorized into infrastructure (unit) and validation (performance) tests.
 - `scripts/`: Quality assurance tools, including the `precommit.sh` static analysis suite.
@@ -66,7 +66,7 @@ pytest -m radar          # Only Radar KPIs
 pytest -m camera         # Only Camera KPIs
 pytest -m fusion         # Only Fusion KPIs
 pytest -m infrastructure # Only core logic unit tests
-pytest -m additional     # Only the 3 proposed additional KPIs
+pytest -m extended_kpis # Only the 3 proposed advanced KPIs
 ```
 
 ## Visualization and Reporting

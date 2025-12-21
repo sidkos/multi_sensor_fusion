@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 @pytest.mark.contribution
-@pytest.mark.additional
+@pytest.mark.extended_kpis
 def test_sensor_contribution_balance(
     loaded_data: Dict[str, Any],
 ) -> None:
@@ -32,7 +32,7 @@ def test_sensor_contribution_balance(
     fused_data: List[FusedFrame] = [frame for frame in fused_data_raw if isinstance(frame, FusedFrame)]
     balance = KPICalculator.calculate_sensor_contribution_balance(fused_data)
 
-    logger.info(f"Additional KPI - Sensor Contribution: {balance}")
+    logger.info(f"KPI - Sensor Contribution Balance: {balance}")
     assert (
         balance["both"] + balance["camera_only"] + balance["radar_only"] > 0
     ), "Total sensor contribution balance must be greater than zero"

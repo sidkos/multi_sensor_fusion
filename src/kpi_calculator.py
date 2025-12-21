@@ -1,6 +1,6 @@
 """
 Module for calculating Key Performance Indicators (KPIs).
-Includes calculations for mandatory KPIs and additional performance metrics.
+Includes calculations for mandatory KPIs and advanced performance metrics.
 """
 
 import math

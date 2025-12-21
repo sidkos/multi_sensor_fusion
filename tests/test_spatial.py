@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 @pytest.mark.spatial
-@pytest.mark.additional
+@pytest.mark.extended_kpis
 def test_spatial_alignment_error(
     loaded_data: Dict[str, Any],
 ) -> None:
@@ -34,7 +34,7 @@ def test_spatial_alignment_error(
     # Check spatial alignment for the first available frame
     if fused_data:
         spatial_err = KPICalculator.calculate_spatial_alignment_error(fused_data[0])
-        logger.info(f"Additional KPI - Spatial Alignment Error (Frame 0): {spatial_err:.4f}")
+        logger.info(f"KPI - Spatial Alignment Error (Frame 0): {spatial_err:.4f}")
         assert spatial_err >= 0, f"Spatial alignment error {spatial_err} cannot be negative"
     else:
         pytest.skip("No fused data available to check spatial alignment")
