@@ -5,6 +5,7 @@ Produces latency plots and aggregate summary statistics in JSON format.
 
 import json
 import logging
+import os
 from typing import Any, Dict, List, Optional
 
 import matplotlib.pyplot as plt
@@ -21,15 +22,16 @@ def generate_report(
     camera_data: Optional[List[CameraFrame]] = None,
     fused_data: Optional[List[FusedFrame]] = None,
     test_results: Optional[Dict[str, Any]] = None,
+    output_dir: str = "reports",
 ) -> None:
     """Generates visual and text reports from provided or loaded data.
 
     If data is not provided, it loads it from default paths.
-    Calculates aggregate metrics and saves them to:
-    - latency_report.png: Plot of sensor and fusion latencies.
-    - performance_summary.png: Distribution of fusion consistency and spatial errors.
-    - summary_stats.json: JSON file with average latencies and stability scores.
+    Calculates aggregate metrics and saves them to the specified output_dir.
     """
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
     if radar_data is None:
         radar_raw = DataLoader.load_radar_data("data/radar_data_with_kpis.jsonl")
         radar_data = [f for f in radar_raw if f]
@@ -40,46 +42,79 @@ def generate_report(
         fused_raw = DataLoader.load_fused_data("data/fused_data_with_kpis.jsonl")
         fused_data = [f for f in fused_raw if f]
 
-    # 1. Plot Latencies
-    plt.figure(figsize=(12, 6))
-    plt.plot([f.latency_ms for f in radar_data], label="Radar Latency", alpha=0.7)
-    plt.plot([f.latency_ms for f in camera_data], label="Camera Latency", alpha=0.7)
-    plt.plot([f.latency_ms for f in fused_data], label="Fusion Latency", linewidth=2)
-    plt.axhline(y=50, color="r", linestyle="--", label="Sensor Limit (50ms)")
-    plt.axhline(y=100, color="g", linestyle="--", label="Fusion Limit (100ms)")
+    # 1. Radar Latency
+    plt.figure(figsize=(10, 5))
+    plt.plot([f.latency_ms for f in radar_data], label="Radar Latency", color="blue")
+    plt.axhline(y=50, color="r", linestyle="--", label="Limit (50ms)")
     plt.xlabel("Frame index")
     plt.ylabel("Latency (ms)")
-    plt.title("Sensor and Fusion Latency Performance Over Time")
+    plt.title("Radar Latency Performance")
     plt.legend()
     plt.grid(True, linestyle=":", alpha=0.6)
-    plt.savefig("latency_report.png")
+    plt.savefig(os.path.join(output_dir, "radar_latency.png"))
     plt.close()
-    logger.info("Latency report saved as latency_report.png")
 
-    # 2. Plot Performance Summary (Consistency and Spatial Error)
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+    # 2. Camera Latency
+    plt.figure(figsize=(10, 5))
+    plt.plot([f.latency_ms for f in camera_data], label="Camera Latency", color="orange")
+    plt.axhline(y=50, color="r", linestyle="--", label="Limit (50ms)")
+    plt.xlabel("Frame index")
+    plt.ylabel("Latency (ms)")
+    plt.title("Camera Latency Performance")
+    plt.legend()
+    plt.grid(True, linestyle=":", alpha=0.6)
+    plt.savefig(os.path.join(output_dir, "camera_latency.png"))
+    plt.close()
 
-    # Consistency scores
+    # 3. Fusion Latency
+    plt.figure(figsize=(10, 5))
+    plt.plot([f.latency_ms for f in fused_data], label="Fusion Latency", color="green")
+    plt.axhline(y=100, color="r", linestyle="--", label="Limit (100ms)")
+    plt.xlabel("Frame index")
+    plt.ylabel("Latency (ms)")
+    plt.title("Fusion Latency Performance")
+    plt.legend()
+    plt.grid(True, linestyle=":", alpha=0.6)
+    plt.savefig(os.path.join(output_dir, "fusion_latency.png"))
+    plt.close()
+
+    # 4. Combined Camera and Radar Latency
+    plt.figure(figsize=(10, 5))
+    plt.plot([f.latency_ms for f in camera_data], label="Camera Latency", color="orange", alpha=0.7)
+    plt.plot([f.latency_ms for f in radar_data], label="Radar Latency", color="blue", alpha=0.7)
+    plt.axhline(y=50, color="r", linestyle="--", label="Limit (50ms)")
+    plt.xlabel("Frame index")
+    plt.ylabel("Latency (ms)")
+    plt.title("Combined Camera and Radar Latency Performance")
+    plt.legend()
+    plt.grid(True, linestyle=":", alpha=0.6)
+    plt.savefig(os.path.join(output_dir, "camera_radar_latency.png"))
+    plt.close()
+
+    # 5. Decision Consistency Distribution
+    plt.figure(figsize=(10, 5))
     consistency_scores = [KPICalculator.calculate_decision_consistency(f) for f in fused_data]
-    ax1.hist(consistency_scores, bins=10, color="skyblue", edgecolor="black")
-    ax1.set_title("Fusion Decision Consistency Distribution")
-    ax1.set_xlabel("Consistency Score")
-    ax1.set_ylabel("Frequency")
-
-    # Spatial alignment errors
-    spatial_errors = [KPICalculator.calculate_spatial_alignment_error(f) for f in fused_data]
-    ax2.plot(spatial_errors, marker="o", linestyle="-", color="coral", markersize=4)
-    ax2.set_title("Spatial Alignment Error Over Time")
-    ax2.set_xlabel("Frame index")
-    ax2.set_ylabel("Distance Error (units)")
-    ax2.grid(True, linestyle="--", alpha=0.5)
-
-    plt.tight_layout()
-    plt.savefig("performance_summary.png")
+    plt.hist(consistency_scores, bins=10, color="skyblue", edgecolor="black")
+    plt.title("Fusion Decision Consistency Distribution")
+    plt.xlabel("Consistency Score")
+    plt.ylabel("Frequency")
+    plt.savefig(os.path.join(output_dir, "decision_consistency.png"))
     plt.close()
-    logger.info("Performance summary saved as performance_summary.png")
 
-    # 3. Summary Statistics
+    # 5. Spatial Alignment Error Over Time
+    plt.figure(figsize=(10, 5))
+    spatial_errors = [KPICalculator.calculate_spatial_alignment_error(f) for f in fused_data]
+    plt.plot(spatial_errors, marker="o", linestyle="-", color="coral", markersize=4)
+    plt.title("Spatial Alignment Error Over Time")
+    plt.xlabel("Frame index")
+    plt.ylabel("Distance Error (units)")
+    plt.grid(True, linestyle="--", alpha=0.5)
+    plt.savefig(os.path.join(output_dir, "spatial_alignment.png"))
+    plt.close()
+
+    logger.info(f"Individual reports saved in {output_dir}/")
+
+    # 6. Summary Statistics
     radar_latencies = [f.latency_ms for f in radar_data]
     camera_latencies = [f.latency_ms for f in camera_data]
     fusion_latencies = [f.latency_ms for f in fused_data]
@@ -96,9 +131,9 @@ def generate_report(
     if test_results:
         summary["test_results"] = test_results
 
-    with open("summary_stats.json", "w") as f:
+    with open(os.path.join(output_dir, "summary_stats.json"), "w") as f:
         json.dump(summary, f, indent=4)
-    logger.info("Summary stats saved as summary_stats.json")
+    logger.info(f"Summary stats saved in {output_dir}/summary_stats.json")
 
 
 if __name__ == "__main__":

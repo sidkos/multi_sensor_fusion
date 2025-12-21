@@ -17,6 +17,7 @@ This project validates the performance and consistency of a sensor fusion module
     - **Spatial Alignment Error**: Measures the Euclidean distance between camera 3D bounding box centers and radar point clusters to detect calibration drift.
     - **Sensor Contribution Balance**: Analyzes the ratio of objects fused from both sensors vs. single-sensor detections to identify "sensor starvation."
 - **Automated Reporting**: Generates high-resolution visualizations and structured JSON statistics for system-level health assessment.
+- **Unified Test Logging**: Automatically captures all test execution details, including per-frame performance violations and captured logs, into a centralized `test_execution.log` file.
 
 ## Project Structure
 - `src/models/`: Strongly typed data structures for all sensor modalities.
@@ -55,7 +56,8 @@ PYTHONPATH=. pytest tests/
 - **Automatic Management**: The test suite automatically cleans up previous reports before starting and generates fresh ones upon completion.
 - **Infrastructure Tests**: Fast unit tests that validate the calculation logic and data loader resilience.
 - **Validation Tests**: Performance tests that check the actual datasets against the exercise thresholds.
-- **Failures**: If a test fails (e.g., `test_camera_latency`), it will list **every frame** that violated the threshold, providing a complete violation log in `test_execution.log` if captured.
+- **Failures**: If a test fails (e.g., `test_camera_latency`), it will list **every frame** that violated the threshold, providing a complete violation log in `test_execution.log`.
+- **Full Execution Log**: Detailed logs, including captured `logger.info()` messages and full failure tracebacks, are stored in `test_execution.log` for post-run analysis.
 
 ### 4. Running Specific KPI Groups
 You can target specific areas using pytest markers:
@@ -75,15 +77,15 @@ The reporting engine is automatically triggered after the test execution. To run
 PYTHONPATH=. pytest tests/
 ```
 
-### Generated Artifacts:
-1.  **`latency_report.png`**:
-    - A temporal line chart comparing Radar, Camera, and Fusion latencies.
-    - Includes horizontal dashed lines for the 50ms (sensor) and 100ms (fusion) mandatory limits.
-2.  **`performance_summary.png`**:
-    - **Left**: A histogram of the Decision Consistency score distribution across the session.
-    - **Right**: A temporal plot of the Spatial Alignment Error, helping identify calibration drift.
-3.  **`summary_stats.json`**:
-    - A structured summary of the session, including average latencies, stability scores, sensor contribution balance, and **test execution results** (pass/fail status).
+### Generated Artifacts (in `reports/` folder):
+1.  **`radar_latency.png`**: Temporal line chart of Radar latency with 50ms limit.
+2.  **`camera_latency.png`**: Temporal line chart of Camera latency with 50ms limit.
+3.  **`fusion_latency.png`**: Temporal line chart of Fusion latency with 100ms limit.
+4.  **`camera_radar_latency.png`**: Combined temporal line chart of Camera and Radar latencies.
+5.  **`decision_consistency.png`**: Histogram of the Decision Consistency score distribution.
+6.  **`spatial_alignment.png`**: Temporal plot of the Spatial Alignment Error.
+7.  **`summary_stats.json`**: Structured summary including aggregate KPIs and test execution results.
+8.  **`test_execution.log`**: Detailed log of the test session.
 
 ## Static Code Analysis
 Before contributing, run the pre-commit suite to ensure compliance with the project's strict quality standards (Strict Mypy, Black, Flake8, Bandit):

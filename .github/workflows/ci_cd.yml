@@ -56,17 +56,14 @@ jobs:
       - name: Run Unit Tests
         run: |
           PYTHONPATH=. pytest -m infrastructure
-          ls -l latency_report.png performance_summary.png summary_stats.json
+          ls -R reports/
 
       - name: Upload Test Artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: infrastructure-test-reports
-          path: |
-            latency_report.png
-            performance_summary.png
-            summary_stats.json
+          path: reports/
           if-no-files-found: ignore
 
   build-and-push:
@@ -112,16 +109,13 @@ jobs:
         run: |
           # We need to mount the current directory to collect the artifacts generated inside the container
           # We also ensure the runner user has permissions to the workspace files created by the container
-          docker run --rm -v ${{ github.workspace }}:/app_output ghcr.io/${{ github.repository }}:latest bash -c "pytest -m 'not infrastructure' && cp latency_report.png performance_summary.png summary_stats.json /app_output/ && chmod 666 /app_output/latency_report.png /app_output/performance_summary.png /app_output/summary_stats.json"
-          ls -l latency_report.png performance_summary.png summary_stats.json
+          docker run --rm -v ${{ github.workspace }}:/app_output ghcr.io/${{ github.repository }}:latest bash -c "pytest -m 'not infrastructure' && cp -r reports/ /app_output/ && chmod -R 666 /app_output/reports/"
+          ls -R reports/
 
       - name: Upload Validation Artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: validation-test-reports
-          path: |
-            latency_report.png
-            performance_summary.png
-            summary_stats.json
+          path: reports/
           if-no-files-found: warn
