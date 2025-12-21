@@ -4,21 +4,24 @@ include = '\.pyi?$'
 exclude = '''
 
 (
-/(
-    \.eggs         # exclude a few common directories in the
-  | \.git          # root of the project
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | venv
-  | _build
-  | buck-out
-  | build
-  | dist
-)/
+  \.eggs         # exclude a few common directories in the
+| \.git          # root of the project
+| \.hg
+| \.mypy_cache
+| \.tox
+| \.venv
+| venv
+| _build
+| buck-out
+| build
+| dist
 )
 '''
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [tool.isort]
 profile = "black"
 multi_line_output = 3
