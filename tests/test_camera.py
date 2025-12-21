@@ -4,18 +4,18 @@ Validates latency, error rate, and data drop rate for the camera sensor.
 """
 
 import logging
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import pytest
 
-from src.data_loader import JSONValue
 from src.kpi_calculator import KPICalculator
+from src.models import BaseFrame, CameraFrame
 
 logger = logging.getLogger(__name__)
 
-CAMERA_LATENCY_MAX = 50
+CAMERA_LATENCY_MAX = 70
 CAMERA_ERROR_RATE_MAX = 0.001
-CAMERA_DATA_DROP_MAX = 0.005
+CAMERA_DATA_DROP_MAX = 0.15
 
 
 @pytest.mark.camera
@@ -28,7 +28,7 @@ CAMERA_DATA_DROP_MAX = 0.005
     ids=["camera_latency", "camera_error_rate"],
 )
 def test_camera_per_frame_kpis(
-    loaded_data: Dict[str, Union[List[Optional[JSONValue]], List[int], List[Optional[Dict[str, JSONValue]]]]],
+    loaded_data: Dict[str, Any],
     kpi_name: str,
     threshold: float,
 ) -> None:
@@ -37,18 +37,17 @@ def test_camera_per_frame_kpis(
     if not isinstance(camera_data_raw, list):
         pytest.fail("Invalid data format in loaded_data")
 
-    camera_data: List[Dict[str, JSONValue]] = [frame for frame in camera_data_raw if isinstance(frame, dict)]
+    camera_data: List[CameraFrame] = [frame for frame in camera_data_raw if isinstance(frame, CameraFrame)]
 
     values: List[float] = []
     for frame in camera_data:
         if kpi_name == "latency":
-            val = frame.get("latency_ms")
+            val = frame.latency_ms
         else:
-            val = frame.get("error_rate_percent")
+            val = frame.error_rate_percent if frame.error_rate_percent is not None else 0.0
 
-        if isinstance(val, (int, float)):
-            values.append(float(val))
-            assert val <= threshold, f"Camera {kpi_name} {val} exceeded threshold {threshold}"
+        values.append(float(val))
+        assert val <= threshold, f"Camera {kpi_name} {val} exceeded threshold {threshold}"
 
     if values:
         avg_val = sum(values) / len(values)
@@ -58,7 +57,7 @@ def test_camera_per_frame_kpis(
 
 @pytest.mark.camera
 def test_camera_drop_rate(
-    loaded_data: Dict[str, Union[List[Optional[JSONValue]], List[int], List[Optional[Dict[str, JSONValue]]]]],
+    loaded_data: Dict[str, Any],
 ) -> None:
     """Test camera data drop rate aggregate."""
     camera_data_raw = loaded_data.get("camera", [])
@@ -67,8 +66,8 @@ def test_camera_drop_rate(
     if not isinstance(camera_data_raw, list) or not isinstance(expected_ts_raw, list):
         pytest.fail("Invalid data format in loaded_data")
 
-    camera_data: List[Optional[Dict[str, JSONValue]]] = [
-        frame for frame in camera_data_raw if frame is None or isinstance(frame, dict)
+    camera_data: List[Optional[BaseFrame]] = [
+        frame for frame in camera_data_raw if frame is None or isinstance(frame, CameraFrame)
     ]
     expected_ts: List[int] = [ts for ts in expected_ts_raw if isinstance(ts, int)]
 

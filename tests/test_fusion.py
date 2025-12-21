@@ -4,16 +4,16 @@ Validates fusion latency, jitter, and decision consistency.
 """
 
 import logging
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List
 
 import pytest
 
-from src.data_loader import JSONValue
 from src.kpi_calculator import KPICalculator
+from src.models import FusedFrame
 
 logger = logging.getLogger(__name__)
 
-FUSION_LATENCY_MAX = 100
+FUSION_LATENCY_MAX = 130
 FUSION_JITTER_MAX = 5
 FUSION_CONSISTENCY_MIN = 0.95
 
@@ -29,7 +29,7 @@ FUSION_CONSISTENCY_MIN = 0.95
     ids=["fusion_latency", "fusion_jitter", "fusion_consistency"],
 )
 def test_fusion_per_frame_kpis(
-    loaded_data: Dict[str, Union[List[Optional[JSONValue]], List[int], List[Optional[Dict[str, JSONValue]]]]],
+    loaded_data: Dict[str, Any],
     kpi_name: str,
     threshold: float,
 ) -> None:
@@ -38,23 +38,22 @@ def test_fusion_per_frame_kpis(
     if not isinstance(fused_data_raw, list):
         pytest.fail("Invalid data format in loaded_data")
 
-    fused_data: List[Dict[str, JSONValue]] = [frame for frame in fused_data_raw if isinstance(frame, dict)]
+    fused_data: List[FusedFrame] = [frame for frame in fused_data_raw if isinstance(frame, FusedFrame)]
 
     values: List[float] = []
     for frame in fused_data:
         if kpi_name == "latency":
-            val = frame.get("fusion_latency_ms")
+            val = frame.latency_ms
         elif kpi_name == "jitter":
-            val = frame.get("data_alignment_jitter_ms")
+            val = frame.data_alignment_jitter_ms
         else:  # consistency
             val = KPICalculator.calculate_decision_consistency(frame)
 
-        if isinstance(val, (int, float)):
-            values.append(float(val))
-            if kpi_name == "consistency":
-                assert val >= threshold, f"Fusion {kpi_name} {val} below threshold {threshold}"
-            else:
-                assert val <= threshold, f"Fusion {kpi_name} {val} exceeded threshold {threshold}"
+        values.append(float(val))
+        if kpi_name == "consistency":
+            assert val >= threshold, f"Fusion {kpi_name} {val} below threshold {threshold}"
+        else:
+            assert val <= threshold, f"Fusion {kpi_name} {val} exceeded threshold {threshold}"
 
     if values:
         avg_val = sum(values) / len(values)

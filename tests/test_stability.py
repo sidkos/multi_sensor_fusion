@@ -5,12 +5,12 @@ High variance might indicate an unstable fusion algorithm.
 """
 
 import logging
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List
 
 import pytest
 
-from src.data_loader import JSONValue
 from src.kpi_calculator import KPICalculator
+from src.models import FusedFrame
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 @pytest.mark.stability
 @pytest.mark.additional
 def test_confidence_stability(
-    loaded_data: Dict[str, Union[List[Optional[JSONValue]], List[int], List[Optional[Dict[str, JSONValue]]]]],
+    loaded_data: Dict[str, Any],
 ) -> None:
     """Validate the confidence stability score.
 
@@ -28,7 +28,7 @@ def test_confidence_stability(
     if not isinstance(fused_data_raw, list):
         pytest.fail("Invalid data format in loaded_data")
 
-    fused_data: List[Dict[str, JSONValue]] = [frame for frame in fused_data_raw if isinstance(frame, dict)]
+    fused_data: List[FusedFrame] = [frame for frame in fused_data_raw if isinstance(frame, FusedFrame)]
     stability = KPICalculator.calculate_confidence_stability(fused_data)
 
     logger.info(f"Additional KPI - Confidence Stability (StdDev): {stability:.4f}")

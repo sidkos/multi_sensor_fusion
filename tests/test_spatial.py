@@ -5,12 +5,12 @@ It helps detect spatial calibration issues between sensors.
 """
 
 import logging
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List
 
 import pytest
 
-from src.data_loader import JSONValue
 from src.kpi_calculator import KPICalculator
+from src.models import FusedFrame
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 @pytest.mark.spatial
 @pytest.mark.additional
 def test_spatial_alignment_error(
-    loaded_data: Dict[str, Union[List[Optional[JSONValue]], List[int], List[Optional[Dict[str, JSONValue]]]]],
+    loaded_data: Dict[str, Any],
 ) -> None:
     """Validate the spatial alignment error.
 
@@ -29,7 +29,7 @@ def test_spatial_alignment_error(
     if not isinstance(fused_data_raw, list):
         pytest.fail("Invalid data format in loaded_data")
 
-    fused_data: List[Dict[str, JSONValue]] = [frame for frame in fused_data_raw if isinstance(frame, dict)]
+    fused_data: List[FusedFrame] = [frame for frame in fused_data_raw if isinstance(frame, FusedFrame)]
 
     # Check spatial alignment for the first available frame
     if fused_data:

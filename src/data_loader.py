@@ -7,10 +7,19 @@ import json
 import os
 from typing import Dict, List, Optional, Union
 
+from src.models import (
+    CameraFrame,
+    CameraObject,
+    FusedFrame,
+    FusedObject,
+    RadarFrame,
+    RadarPoint,
+)
+
 # Define types for sensor data
 JSONValue = Union[str, int, float, bool, None, Dict[str, "JSONValue"], List["JSONValue"]]
 SensorData = Dict[str, JSONValue]
-AlignedFrame = Dict[str, Optional[JSONValue]]
+AlignedFrame = Dict[str, Optional[Union[RadarFrame, CameraFrame, FusedFrame, int]]]
 
 
 class DataLoader:
@@ -45,45 +54,168 @@ class DataLoader:
         return data
 
     @staticmethod
+    def load_radar_data(filepath: str) -> List[Optional[RadarFrame]]:
+        """Loads radar data and returns a list of RadarFrame objects."""
+        raw_data = DataLoader.load_jsonl(filepath)
+        frames: List[Optional[RadarFrame]] = []
+        for item in raw_data:
+            if item is None:
+                frames.append(None)
+                continue
+
+            points_raw = item.get("points", [])
+            points = []
+            if isinstance(points_raw, list):
+                for p in points_raw:
+                    if isinstance(p, dict):
+                        # Ensure all fields are present and of correct type for RadarPoint
+                        val_x = p.get("x", 0.0)
+                        val_y = p.get("y", 0.0)
+                        val_z = p.get("z", 0.0)
+                        val_ss = p.get("signal_strength", 0.0)
+                        val_dv = p.get("doppler_velocity", 0.0)
+                        points.append(
+                            RadarPoint(
+                                x=float(val_x) if isinstance(val_x, (int, float)) else 0.0,
+                                y=float(val_y) if isinstance(val_y, (int, float)) else 0.0,
+                                z=float(val_z) if isinstance(val_z, (int, float)) else 0.0,
+                                signal_strength=float(val_ss) if isinstance(val_ss, (int, float)) else 0.0,
+                                doppler_velocity=float(val_dv) if isinstance(val_dv, (int, float)) else 0.0,
+                                object_class=str(p.get("object_class", "unknown")),
+                            )
+                        )
+
+            ts_val = item.get("timestamp", 0)
+            lat_val = item.get("latency_ms", 0.0)
+            err_val = item.get("error_rate_percent", 0.0)
+            frames.append(
+                RadarFrame(
+                    timestamp=int(ts_val) if isinstance(ts_val, int) else 0,
+                    latency_ms=float(lat_val) if isinstance(lat_val, (int, float)) else 0.0,
+                    error_rate_percent=float(err_val) if isinstance(err_val, (int, float)) else 0.0,
+                    points=points,
+                )
+            )
+        return frames
+
+    @staticmethod
+    def load_camera_data(filepath: str) -> List[Optional[CameraFrame]]:
+        """Loads camera data and returns a list of CameraFrame objects."""
+        raw_data = DataLoader.load_jsonl(filepath)
+        frames: List[Optional[CameraFrame]] = []
+        for item in raw_data:
+            if item is None:
+                frames.append(None)
+                continue
+
+            objects_raw = item.get("objects", [])
+            objects = []
+            if isinstance(objects_raw, list):
+                for obj in objects_raw:
+                    if isinstance(obj, dict):
+                        bbox_raw = obj.get("bbox_3d", [])
+                        bbox: List[Dict[str, float]] = []
+                        if isinstance(bbox_raw, list):
+                            for p in bbox_raw:
+                                if isinstance(p, dict):
+                                    bbox.append({k: float(v) for k, v in p.items() if isinstance(v, (int, float))})
+
+                        objects.append(CameraObject(object_class=str(obj.get("class", "unknown")), bbox_3d=bbox))
+
+            ts_val = item.get("timestamp", 0)
+            lat_val = item.get("latency_ms", 0.0)
+            err_val = item.get("error_rate_percent", 0.0)
+            frames.append(
+                CameraFrame(
+                    timestamp=int(ts_val) if isinstance(ts_val, int) else 0,
+                    latency_ms=float(lat_val) if isinstance(lat_val, (int, float)) else 0.0,
+                    error_rate_percent=float(err_val) if isinstance(err_val, (int, float)) else 0.0,
+                    frame_id=str(item.get("frame_id", "")),
+                    objects=objects,
+                )
+            )
+        return frames
+
+    @staticmethod
+    def load_fused_data(filepath: str) -> List[Optional[FusedFrame]]:
+        """Loads fused data and returns a list of FusedFrame objects."""
+        raw_data = DataLoader.load_jsonl(filepath)
+        frames: List[Optional[FusedFrame]] = []
+        for item in raw_data:
+            if item is None:
+                frames.append(None)
+                continue
+
+            fused_objects = []
+            objects_raw = item.get("fused_objects", [])
+            if isinstance(objects_raw, list):
+                for obj in objects_raw:
+                    if isinstance(obj, dict):
+                        source_classes_raw = obj.get("source_classes", {})
+                        source_classes = {}
+                        if isinstance(source_classes_raw, dict):
+                            source_classes = {str(k): str(v) for k, v in source_classes_raw.items()}
+
+                        cam_bbox_raw = obj.get("camera_bbox_3d", [])
+                        cam_bbox: List[Dict[str, float]] = []
+                        if isinstance(cam_bbox_raw, list):
+                            for p in cam_bbox_raw:
+                                if isinstance(p, dict):
+                                    cam_bbox.append({k: float(v) for k, v in p.items() if isinstance(v, (int, float))})
+
+                        radar_pts_raw = obj.get("radar_points", [])
+                        radar_pts: List[Dict[str, float]] = []
+                        if isinstance(radar_pts_raw, list):
+                            for p in radar_pts_raw:
+                                if isinstance(p, dict):
+                                    radar_pts.append({k: float(v) for k, v in p.items() if isinstance(v, (int, float))})
+
+                        conf_val = obj.get("fused_confidence", 0.0)
+                        fused_objects.append(
+                            FusedObject(
+                                object_class=str(obj.get("class", "unknown")),
+                                source_classes=source_classes,
+                                camera_bbox_3d=cam_bbox,
+                                radar_points=radar_pts,
+                                fused_confidence=float(conf_val) if isinstance(conf_val, (int, float)) else 0.0,
+                            )
+                        )
+            ts_val = item.get("timestamp", 0)
+            lat_val = item.get("fusion_latency_ms", 0.0)
+            jit_val = item.get("data_alignment_jitter_ms", 0.0)
+            frames.append(
+                FusedFrame(
+                    timestamp=int(ts_val) if isinstance(ts_val, int) else 0,
+                    latency_ms=float(lat_val) if isinstance(lat_val, (int, float)) else 0.0,
+                    data_alignment_jitter_ms=float(jit_val) if isinstance(jit_val, (int, float)) else 0.0,
+                    fused_objects=fused_objects,
+                )
+            )
+        return frames
+
+    @staticmethod
     def align_data(
-        radar_data: List[Optional[SensorData]],
-        camera_data: List[Optional[SensorData]],
-        fused_data: List[Optional[SensorData]],
+        radar_data: List[Optional[RadarFrame]],
+        camera_data: List[Optional[CameraFrame]],
+        fused_data: List[Optional[FusedFrame]],
     ) -> List[AlignedFrame]:
-        """Aligns radar and camera frames with fusion output using timestamp logic.
-
-        Fusion at t+1 corresponds to sensors at t.
-
-        Args:
-            radar_data (list): List of radar data frames.
-            camera_data (list): List of camera data frames.
-            fused_data (list): List of fused data frames.
-
-        Returns:
-            list: List of aligned frames containing fused, radar, and camera data.
-        """
-        # Fusion at t+1 corresponds to sensors at t
-        # We'll create a mapping by timestamp
-        radar_map = {item["timestamp"]: item for item in radar_data if item}
-        camera_map = {item["timestamp"]: item for item in camera_data if item}
+        """Aligns radar and camera frames with fusion output using timestamp logic."""
+        radar_map = {item.timestamp: item for item in radar_data if item}
+        camera_map = {item.timestamp: item for item in camera_data if item}
 
         aligned_frames: List[AlignedFrame] = []
         for fused_frame in fused_data:
             if not fused_frame:
                 continue
 
-            timestamp = fused_frame.get("timestamp")
-            if not isinstance(timestamp, int):
-                continue
-
-            target_ts = timestamp - 100  # Assuming 10 FPS (100ms interval)
+            target_ts = fused_frame.timestamp - 100  # Assuming 10 FPS
 
             aligned_frames.append(
                 {
                     "fused": fused_frame,
                     "radar": radar_map.get(target_ts),
                     "camera": camera_map.get(target_ts),
-                    "timestamp": fused_frame["timestamp"],
+                    "timestamp": fused_frame.timestamp,
                 }
             )
 

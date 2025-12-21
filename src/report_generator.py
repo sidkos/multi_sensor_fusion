@@ -9,8 +9,9 @@ from typing import List
 
 import matplotlib.pyplot as plt
 
-from src.data_loader import DataLoader, SensorData
+from src.data_loader import DataLoader
 from src.kpi_calculator import KPICalculator
+from src.models import FusedFrame
 
 logger = logging.getLogger(__name__)
 
@@ -22,33 +23,16 @@ def generate_report() -> None:
     - latency_report.png: Plot of sensor and fusion latencies.
     - summary_stats.json: JSON file with average latencies and stability scores.
     """
-    radar_data = DataLoader.load_jsonl("data/radar_data.jsonl")
-    camera_data = DataLoader.load_jsonl("data/camera_data.jsonl")
-    fused_data = DataLoader.load_jsonl("data/fused_data.jsonl")
+    radar_data = DataLoader.load_radar_data("data/radar_data_with_kpis.jsonl")
+    camera_data = DataLoader.load_camera_data("data/camera_data_with_kpis.jsonl")
+    fused_data = DataLoader.load_fused_data("data/fused_data_with_kpis.jsonl")
 
     # Calculate metrics
-    radar_latencies: List[float] = []
-    for f in radar_data:
-        if f:
-            lat = f.get("latency_ms")
-            if isinstance(lat, (int, float)):
-                radar_latencies.append(float(lat))
+    radar_latencies: List[float] = [f.latency_ms for f in radar_data if f]
+    camera_latencies: List[float] = [f.latency_ms for f in camera_data if f]
+    fusion_latencies: List[float] = [f.latency_ms for f in fused_data if f]
 
-    camera_latencies: List[float] = []
-    for f in camera_data:
-        if f:
-            lat = f.get("latency_ms")
-            if isinstance(lat, (int, float)):
-                camera_latencies.append(float(lat))
-
-    fusion_latencies: List[float] = []
-    for f in fused_data:
-        if f:
-            lat = f.get("fusion_latency_ms")
-            if isinstance(lat, (int, float)):
-                fusion_latencies.append(float(lat))
-
-    valid_fused_data: List[SensorData] = [f for f in fused_data if f]
+    valid_fused_data: List[FusedFrame] = [f for f in fused_data if f]
 
     # Plot Latencies
     plt.figure(figsize=(10, 6))

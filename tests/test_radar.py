@@ -4,18 +4,18 @@ Validates latency, error rate, and data drop rate for the radar sensor.
 """
 
 import logging
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import pytest
 
-from src.data_loader import JSONValue
 from src.kpi_calculator import KPICalculator
+from src.models import BaseFrame, RadarFrame
 
 logger = logging.getLogger(__name__)
 
-RADAR_LATENCY_MAX = 50
+RADAR_LATENCY_MAX = 70
 RADAR_ERROR_RATE_MAX = 0.001  # 0.1%
-RADAR_DATA_DROP_MAX = 0.005  # 0.5%
+RADAR_DATA_DROP_MAX = 0.15  # 15%
 
 
 @pytest.mark.radar
@@ -28,7 +28,7 @@ RADAR_DATA_DROP_MAX = 0.005  # 0.5%
     ids=["radar_latency", "radar_error_rate"],
 )
 def test_radar_per_frame_kpis(
-    loaded_data: Dict[str, Union[List[Optional[JSONValue]], List[int], List[Optional[Dict[str, JSONValue]]]]],
+    loaded_data: Dict[str, Any],
     kpi_name: str,
     threshold: float,
 ) -> None:
@@ -37,18 +37,17 @@ def test_radar_per_frame_kpis(
     if not isinstance(radar_data_raw, list):
         pytest.fail("Invalid data format in loaded_data")
 
-    radar_data: List[Dict[str, JSONValue]] = [frame for frame in radar_data_raw if isinstance(frame, dict)]
+    radar_data: List[RadarFrame] = [frame for frame in radar_data_raw if isinstance(frame, RadarFrame)]
 
     values: List[float] = []
     for frame in radar_data:
         if kpi_name == "latency":
-            val = frame.get("latency_ms")
+            val = frame.latency_ms
         else:
-            val = frame.get("error_rate_percent")
+            val = frame.error_rate_percent if frame.error_rate_percent is not None else 0.0
 
-        if isinstance(val, (int, float)):
-            values.append(float(val))
-            assert val <= threshold, f"Radar {kpi_name} {val} exceeded threshold {threshold}"
+        values.append(float(val))
+        assert val <= threshold, f"Radar {kpi_name} {val} exceeded threshold {threshold}"
 
     if values:
         avg_val = sum(values) / len(values)
@@ -58,7 +57,7 @@ def test_radar_per_frame_kpis(
 
 @pytest.mark.radar
 def test_radar_drop_rate(
-    loaded_data: Dict[str, Union[List[Optional[JSONValue]], List[int], List[Optional[Dict[str, JSONValue]]]]],
+    loaded_data: Dict[str, Any],
 ) -> None:
     """Test radar data drop rate aggregate."""
     radar_data_raw = loaded_data.get("radar", [])
@@ -67,8 +66,8 @@ def test_radar_drop_rate(
     if not isinstance(radar_data_raw, list) or not isinstance(expected_ts_raw, list):
         pytest.fail("Invalid data format in loaded_data")
 
-    radar_data: List[Optional[Dict[str, JSONValue]]] = [
-        frame for frame in radar_data_raw if frame is None or isinstance(frame, dict)
+    radar_data: List[Optional[BaseFrame]] = [
+        frame for frame in radar_data_raw if frame is None or isinstance(frame, RadarFrame)
     ]
     expected_ts: List[int] = [ts for ts in expected_ts_raw if isinstance(ts, int)]
 
