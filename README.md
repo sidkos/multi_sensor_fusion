@@ -78,14 +78,31 @@ PYTHONPATH=. pytest tests/
 ```
 
 ### Generated Artifacts (in `reports/` folder):
-1.  **`radar_latency.png`**: Temporal line chart of Radar latency with 50ms limit.
-2.  **`camera_latency.png`**: Temporal line chart of Camera latency with 50ms limit.
-3.  **`fusion_latency.png`**: Temporal line chart of Fusion latency with 100ms limit.
-4.  **`camera_radar_latency.png`**: Combined temporal line chart of Camera and Radar latencies.
-5.  **`decision_consistency.png`**: Histogram of the Decision Consistency score distribution.
-6.  **`spatial_alignment.png`**: Temporal plot of the Spatial Alignment Error.
-7.  **`summary_stats.json`**: Structured summary including aggregate KPIs and test execution results.
-8.  **`test_execution.log`**: Detailed log of the test session.
+
+The following reports are automatically generated to provide a multi-dimensional view of system health:
+
+1.  **`radar_latency.png`**: 
+    - **What it represents**: A temporal analysis of the time taken (in milliseconds) by the radar sensor to process each frame.
+    - **Key Indicators**: The red dashed line at 50ms represents the mandatory performance threshold. Spikes above this line indicate processing bottlenecks.
+2.  **`camera_latency.png`**:
+    - **What it represents**: A temporal analysis of the camera sensor's per-frame processing latency.
+    - **Key Indicators**: Similar to radar, it monitors adherence to the 50ms real-time constraint.
+3.  **`fusion_latency.png`**:
+    - **What it represents**: The end-to-end processing time for the late fusion module.
+    - **Key Indicators**: The performance limit is set at 100ms. This includes the time taken to align sensor data and perform classification fusion.
+4.  **`camera_radar_latency.png`**:
+    - **What it represents**: A comparative view of both primary sensors on a single axis.
+    - **Key Indicators**: Helps identify if latency spikes are correlated across sensors (suggesting system-wide resource contention) or isolated to a specific modality.
+5.  **`decision_consistency.png`**:
+    - **What it represents**: A distribution (histogram) of the consistency scores across all fused objects.
+    - **Key Indicators**: Shows how often the fusion module's final classification aligns with its source sensors (Camera/Radar). High frequency near 1.0 indicates a stable and reliable decision logic.
+6.  **`spatial_alignment.png`**:
+    - **What it represents**: The Euclidean distance between camera 3D bounding box centers and radar point clusters over time.
+    - **Key Indicators**: Monitors "spatial drift." An increasing trend or high variance may indicate calibration misalignment between the sensors.
+7.  **`summary_stats.json`**:
+    - **What it represents**: A structured JSON file containing aggregate metrics (average latencies, stability scores, contribution balance) and the overall test session exit status.
+8.  **`test_execution.log`**:
+    - **What it represents**: A comprehensive audit trail of the test session, documenting every test case, its description, and a detailed list of every per-frame violation detected.
 
 ## Static Code Analysis
 Before contributing, run the pre-commit suite to ensure compliance with the project's strict quality standards (Strict Mypy, Black, Flake8, Bandit):
