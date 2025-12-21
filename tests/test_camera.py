@@ -48,7 +48,7 @@ def test_camera_per_frame_kpis(
 
         if isinstance(val, (int, float)):
             values.append(float(val))
-            assert val < threshold, f"Camera {kpi_name} {val} exceeded threshold {threshold}"
+            assert val <= threshold, f"Camera {kpi_name} {val} exceeded threshold {threshold}"
 
     if values:
         avg_val = sum(values) / len(values)

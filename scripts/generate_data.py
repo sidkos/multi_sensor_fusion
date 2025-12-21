@@ -38,7 +38,7 @@ def generate_radar_data(filename: str, num_frames: int = 100, start_ts: int = 10
                     for _ in range(random.randint(1, 3))
                 ],
             }
-            f.write(json.dumps(frame) + "\n")
+            f.write(f"{json.dumps(frame)}\n")
 
 
 def generate_camera_data(filename: str, num_frames: int = 100, start_ts: int = 1000) -> None:
@@ -69,7 +69,7 @@ def generate_camera_data(filename: str, num_frames: int = 100, start_ts: int = 1
                     }
                 ],
             }
-            f.write(json.dumps(frame) + "\n")
+            f.write(f"{json.dumps(frame)}\n")
 
 
 def generate_fused_data(filename: str, num_frames: int = 100, start_ts: int = 1100) -> None:
@@ -102,7 +102,7 @@ def generate_fused_data(filename: str, num_frames: int = 100, start_ts: int = 11
                     }
                 ],
             }
-            f.write(json.dumps(frame) + "\n")
+            f.write(f"{json.dumps(frame)}\n")
 
 
 if __name__ == "__main__":
