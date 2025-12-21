@@ -1,6 +1,9 @@
 # Sensor Fusion Automation Test Suite
 
-This project validates the performance and consistency of a sensor fusion module using simulated radar, camera, and fusion datasets.
+## Project Overview
+This project provides a robust, Python-based automation framework designed to validate the performance, consistency, and spatial integrity of a multidisciplinary sensor fusion module. By processing high-fidelity datasets from Radar, Camera, and Late Fusion outputs, the suite identifies performance bottlenecks, temporal drifts, and semantic mismatches in real-time perception systems.
+
+The framework is built with scalability and CI/CD integration at its core, utilizing an object-oriented domain model and a tiered testing strategy to provide rapid feedback for safety-critical metrics while maintaining deep diagnostic visibility.
 
 ## Features
 - **Object-Oriented Domain Models**: Uses Python `dataclasses` and inheritance to model `RadarFrame`, `CameraFrame`, and `FusedFrame`, ensuring type safety and code clarity.
@@ -18,6 +21,20 @@ This project validates the performance and consistency of a sensor fusion module
     - **Sensor Contribution Balance**: Analyzes the ratio of objects fused from both sensors vs. single-sensor detections to identify "sensor starvation."
 - **Automated Reporting**: Generates high-resolution visualizations and structured JSON statistics for system-level health assessment.
 - **Unified Test Logging**: Automatically captures all test execution details, including per-frame performance violations and captured logs, into a centralized `test_execution.log` file.
+
+## CI/CD Pipeline
+The project features a fully automated CI/CD pipeline implemented via GitHub Actions, designed to enforce high code quality and validate performance on every change.
+
+### Workflow Stages:
+1.  **Static Analysis**: Runs a comprehensive suite of linters and security scanners (`Black`, `Isort`, `Flake8`, `Bandit`, `Mypy`, `Radon`, `Yamllint`).
+2.  **Unit Tests (Infrastructure)**: Validates the core logic of the data loader and KPI calculators in a clean environment.
+3.  **Docker Build**: Packages the application into a production-ready container and stores it in the **GitHub Container Registry (GHCR)**.
+4.  **Validation Tests**: Pulls the latest image and executes the performance test suite against the real datasets, ensuring the environment is fully operational.
+
+### Accessing Results & Artifacts:
+Performance reports and detailed logs are automatically generated and uploaded for every CI run:
+- **Remote Results**: You can access the artifacts from the latest runs on the [Actions CI/CD Page](https://github.com/sidkos/multi_sensor_fusion/actions/workflows/ci_cd.yml). Select a specific run and scroll down to the "Artifacts" section to download the `validation-test-reports`.
+- **Local Results**: After running the suite locally, all artifacts (plots, JSON stats, and the execution log) are available in the `reports/` directory.
 
 ## Project Structure
 - `src/models/`: Strongly typed data structures for all sensor modalities.
@@ -119,3 +136,12 @@ To optimize the multidisciplinary development lifecycle at Niart, we apply a tie
 | **Every Commit** | Latency, Drop Rate, Consistency | **Safety Critical**: These metrics catch immediate regressions in real-time performance and core decision logic. |
 | **Nightly** | Error Rate, Alignment Jitter | **Resource/Noise**: These metrics require longer durations or are sensitive to environmental noise; nightly runs provide stable trends. |
 | **Pre-release** | Spatial Error, Stability, Balance | **System Tuning**: These catch long-term drift or architectural imbalances that are typically addressed during integration phases. |
+
+## Future Roadmap & Improvements
+To further evolve the automation framework and perception system, the following enhancements are planned:
+1.  **Semantic Synchronization**: Enhance the `Decision Consistency` KPI to include object-level tracking, allowing for "Object History" validation across multiple frames.
+2.  **3D Geometry Visualization**: Implement an interactive 3D playback tool (e.g., using `Open3D` or `PyVista`) to visualize bounding box overlaps and radar point clouds in the sensor's coordinate system.
+3.  **Stress Testing Engine**: Integrate a synthetic data perturbation tool to simulate extreme weather conditions (e.g., sensor noise, occlusion) and validate fusion robustness under stress.
+4.  **Hardware-in-the-loop (HIL) Integration**: Adapt the validation suite to interface with real-time hardware targets for low-level latency profiling and memory usage monitoring.
+5.  **AI-Driven Anomaly Detection**: Implement unsupervised learning models to automatically detect "unusual" sensor patterns or corner cases that violate safety-critical assumptions but may pass static KPI thresholds.
+6.  **Real-time Event Streaming**: Transition from file-based ingestion to processing live streams of events (e.g., via Kafka) to enable real-time performance monitoring.
