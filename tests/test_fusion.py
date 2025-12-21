@@ -13,7 +13,7 @@ from src.models import FusedFrame
 
 logger = logging.getLogger(__name__)
 
-FUSION_LATENCY_MAX = 130
+FUSION_LATENCY_MAX = 100
 FUSION_JITTER_MAX = 5
 FUSION_CONSISTENCY_MIN = 0.95
 
@@ -40,6 +40,7 @@ def test_fusion_per_frame_kpis(
 
     fused_data: List[FusedFrame] = [frame for frame in fused_data_raw if isinstance(frame, FusedFrame)]
 
+    failures: List[str] = []
     values: List[float] = []
     for frame in fused_data:
         if kpi_name == "latency":
@@ -51,9 +52,11 @@ def test_fusion_per_frame_kpis(
 
         values.append(float(val))
         if kpi_name == "consistency":
-            assert val >= threshold, f"Fusion {kpi_name} {val} below threshold {threshold}"
+            if val < threshold:
+                failures.append(f"Frame {frame.timestamp}: {val} below threshold {threshold}")
         else:
-            assert val <= threshold, f"Fusion {kpi_name} {val} exceeded threshold {threshold}"
+            if val > threshold:
+                failures.append(f"Frame {frame.timestamp}: {val} exceeded threshold {threshold}")
 
     if values:
         avg_val = sum(values) / len(values)
@@ -63,3 +66,5 @@ def test_fusion_per_frame_kpis(
             logger.info(f"Fusion {kpi_name} - Avg: {avg_val:.4f}, Min: {min_val:.4f} (Threshold: {threshold})")
         else:
             logger.info(f"Fusion {kpi_name} - Avg: {avg_val:.4f}, Max: {max_val:.4f} (Threshold: {threshold})")
+
+    assert not failures, f"Fusion {kpi_name} violations found in {len(failures)} frames:\n" + "\n".join(failures)

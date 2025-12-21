@@ -43,6 +43,11 @@ class KPICalculator:
     def calculate_decision_consistency(fused_frame: FusedFrame) -> float:
         """Calculates consistency between fused class and source sensor classes.
 
+        Implements logic that monitors classification results per frame for each modality
+        before fusion and compares these with the fused classification.
+        Assumes the fusion module may rely on a single trusted modality if the other
+        modality does not detect an object.
+
         Args:
             fused_frame (FusedFrame): A single aligned frame containing fusion results.
 
@@ -61,7 +66,10 @@ class KPICalculator:
             radar_class = source_classes.get("radar")
 
             # Simple logic: fused class should match at least one available source class
-            if (camera_class and fused_class == camera_class) or (radar_class and fused_class == radar_class):
+            available_sources = [cls for cls in [camera_class, radar_class] if cls]
+            if not available_sources:
+                continue
+            if fused_class in available_sources:
                 consistent_count += 1
 
         return consistent_count / len(fused_objects)

@@ -13,9 +13,9 @@ from src.models import BaseFrame, CameraFrame
 
 logger = logging.getLogger(__name__)
 
-CAMERA_LATENCY_MAX = 70
+CAMERA_LATENCY_MAX = 50
 CAMERA_ERROR_RATE_MAX = 0.001
-CAMERA_DATA_DROP_MAX = 0.15
+CAMERA_DATA_DROP_MAX = 0.005
 
 
 @pytest.mark.camera
@@ -39,6 +39,7 @@ def test_camera_per_frame_kpis(
 
     camera_data: List[CameraFrame] = [frame for frame in camera_data_raw if isinstance(frame, CameraFrame)]
 
+    failures: List[str] = []
     values: List[float] = []
     for frame in camera_data:
         if kpi_name == "latency":
@@ -47,12 +48,15 @@ def test_camera_per_frame_kpis(
             val = frame.error_rate_percent if frame.error_rate_percent is not None else 0.0
 
         values.append(float(val))
-        assert val <= threshold, f"Camera {kpi_name} {val} exceeded threshold {threshold}"
+        if val > threshold:
+            failures.append(f"Frame {frame.timestamp}: {val} exceeded threshold {threshold}")
 
     if values:
         avg_val = sum(values) / len(values)
         max_val = max(values)
         logger.info(f"Camera {kpi_name} - Avg: {avg_val:.4f}, Max: {max_val:.4f} (Threshold: {threshold})")
+
+    assert not failures, f"Camera {kpi_name} violations found in {len(failures)} frames:\n" + "\n".join(failures)
 
 
 @pytest.mark.camera
