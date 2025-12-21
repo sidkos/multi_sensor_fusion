@@ -4,6 +4,7 @@ Loads datasets once per session to be used by all test modules.
 """
 
 import logging
+import os
 from typing import Any, Dict
 
 import pytest
@@ -29,6 +30,21 @@ def loaded_data() -> Dict[str, Any]:
 
 # Global list to store test results
 _test_results: Any = []
+
+
+def pytest_sessionstart(session: pytest.Session) -> None:
+    """Hook called before the test session starts.
+
+    Ensures a clean environment by removing old report files.
+    """
+    report_files = ["latency_report.png", "performance_summary.png", "summary_stats.json"]
+    for f in report_files:
+        if os.path.exists(f):
+            try:
+                os.remove(f)
+                logger.info(f"Removed old report file: {f}")
+            except Exception as e:
+                logger.warning(f"Failed to remove {f}: {e}")
 
 
 def pytest_runtest_logreport(report: Any) -> None:

@@ -45,18 +45,17 @@ This project is optimized for **pytest**.
 - **VS Code**: The project includes a `pytest.ini` which should be automatically detected by the Python extension.
 
 ### 3. Executing the Validation Suite
-To run the full battery of tests and capture the results for analysis:
+To run the full battery of tests and automatically generate performance reports:
 
 ```bash
-# Run all tests and save detailed per-frame violations to a log file
-# The -s flag allows seeing live logs, and tee captures everything
-PYTHONPATH=. pytest tests/ -s | tee test_execution.log
+PYTHONPATH=. pytest tests/
 ```
 
 **Understanding the Output**:
+- **Automatic Management**: The test suite automatically cleans up previous reports before starting and generates fresh ones upon completion.
 - **Infrastructure Tests**: Fast unit tests that validate the calculation logic and data loader resilience.
 - **Validation Tests**: Performance tests that check the actual datasets against the exercise thresholds.
-- **Failures**: If a test fails (e.g., `test_camera_latency`), it will list **every frame** that violated the threshold, not just the first one.
+- **Failures**: If a test fails (e.g., `test_camera_latency`), it will list **every frame** that violated the threshold, providing a complete violation log in `test_execution.log` if captured.
 
 ### 4. Running Specific KPI Groups
 You can target specific areas using pytest markers:
