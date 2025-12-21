@@ -1,0 +1,67 @@
+"""
+Tests for Radar-specific KPIs.
+Validates latency, error rate, and data drop rate for the radar sensor.
+"""
+
+from typing import Dict, List, Optional, Union
+
+import pytest
+
+from src.data_loader import JSONValue
+from src.kpi_calculator import KPICalculator
+
+RADAR_LATENCY_MAX = 50
+RADAR_ERROR_RATE_MAX = 0.001  # 0.1%
+RADAR_DATA_DROP_MAX = 0.005  # 0.5%
+
+
+@pytest.mark.radar
+@pytest.mark.parametrize(
+    "kpi_name, threshold",
+    [
+        ("latency", RADAR_LATENCY_MAX),
+        ("error_rate", RADAR_ERROR_RATE_MAX),
+    ],
+    ids=["radar_latency", "radar_error_rate"],
+)
+def test_radar_per_frame_kpis(
+    loaded_data: Dict[str, Union[List[Optional[JSONValue]], List[int], List[Optional[Dict[str, JSONValue]]]]],
+    kpi_name: str,
+    threshold: float,
+) -> None:
+    """Test radar performance metrics per frame."""
+    radar_data_raw = loaded_data.get("radar", [])
+    if not isinstance(radar_data_raw, list):
+        pytest.fail("Invalid data format in loaded_data")
+
+    radar_data: List[Dict[str, JSONValue]] = [frame for frame in radar_data_raw if isinstance(frame, dict)]
+
+    for frame in radar_data:
+        if kpi_name == "latency":
+            val = frame.get("latency_ms")
+        else:
+            val = frame.get("error_rate_percent")
+
+        if isinstance(val, (int, float)):
+            assert val < threshold
+
+
+@pytest.mark.radar
+def test_radar_drop_rate(
+    loaded_data: Dict[str, Union[List[Optional[JSONValue]], List[int], List[Optional[Dict[str, JSONValue]]]]],
+) -> None:
+    """Test radar data drop rate aggregate."""
+    radar_data_raw = loaded_data.get("radar", [])
+    expected_ts_raw = loaded_data.get("expected_radar_ts", [])
+
+    if not isinstance(radar_data_raw, list) or not isinstance(expected_ts_raw, list):
+        pytest.fail("Invalid data format in loaded_data")
+
+    radar_data: List[Optional[Dict[str, JSONValue]]] = [
+        frame for frame in radar_data_raw if frame is None or isinstance(frame, dict)
+    ]
+    expected_ts: List[int] = [ts for ts in expected_ts_raw if isinstance(ts, int)]
+
+    # Aggregate drop rate
+    drop_rate = KPICalculator.calculate_data_drop_rate(radar_data, expected_ts)
+    assert drop_rate < RADAR_DATA_DROP_MAX
