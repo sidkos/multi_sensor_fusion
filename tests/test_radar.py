@@ -3,12 +3,15 @@ Tests for Radar-specific KPIs.
 Validates latency, error rate, and data drop rate for the radar sensor.
 """
 
+import logging
 from typing import Dict, List, Optional, Union
 
 import pytest
 
 from src.data_loader import JSONValue
 from src.kpi_calculator import KPICalculator
+
+logger = logging.getLogger(__name__)
 
 RADAR_LATENCY_MAX = 50
 RADAR_ERROR_RATE_MAX = 0.001  # 0.1%
@@ -36,6 +39,7 @@ def test_radar_per_frame_kpis(
 
     radar_data: List[Dict[str, JSONValue]] = [frame for frame in radar_data_raw if isinstance(frame, dict)]
 
+    values: List[float] = []
     for frame in radar_data:
         if kpi_name == "latency":
             val = frame.get("latency_ms")
@@ -43,7 +47,13 @@ def test_radar_per_frame_kpis(
             val = frame.get("error_rate_percent")
 
         if isinstance(val, (int, float)):
+            values.append(float(val))
             assert val < threshold
+
+    if values:
+        avg_val = sum(values) / len(values)
+        max_val = max(values)
+        logger.info(f"Radar {kpi_name} - Avg: {avg_val:.4f}, Max: {max_val:.4f} (Threshold: {threshold})")
 
 
 @pytest.mark.radar
@@ -64,4 +74,5 @@ def test_radar_drop_rate(
 
     # Aggregate drop rate
     drop_rate = KPICalculator.calculate_data_drop_rate(radar_data, expected_ts)
+    logger.info(f"Radar Drop Rate: {drop_rate:.4f} (Threshold: {RADAR_DATA_DROP_MAX})")
     assert drop_rate < RADAR_DATA_DROP_MAX

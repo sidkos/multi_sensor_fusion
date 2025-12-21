@@ -4,12 +4,15 @@ This KPI measures the variance of fused_confidence across frames for the same ob
 High variance might indicate an unstable fusion algorithm.
 """
 
+import logging
 from typing import Dict, List, Optional, Union
 
 import pytest
 
 from src.data_loader import JSONValue
 from src.kpi_calculator import KPICalculator
+
+logger = logging.getLogger(__name__)
 
 
 @pytest.mark.stability
@@ -28,5 +31,5 @@ def test_confidence_stability(
     fused_data: List[Dict[str, JSONValue]] = [frame for frame in fused_data_raw if isinstance(frame, dict)]
     stability = KPICalculator.calculate_confidence_stability(fused_data)
 
-    print(f"\nAdditional KPI - Confidence Stability (StdDev): {stability:.4f}")
+    logger.info(f"Additional KPI - Confidence Stability (StdDev): {stability:.4f}")
     assert stability >= 0

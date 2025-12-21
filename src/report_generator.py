@@ -4,12 +4,15 @@ Produces latency plots and aggregate summary statistics in JSON format.
 """
 
 import json
+import logging
 from typing import List
 
 import matplotlib.pyplot as plt
 
 from src.data_loader import DataLoader, SensorData
 from src.kpi_calculator import KPICalculator
+
+logger = logging.getLogger(__name__)
 
 
 def generate_report() -> None:
@@ -59,7 +62,7 @@ def generate_report() -> None:
     plt.title("Sensor and Fusion Latency Performance")
     plt.legend()
     plt.savefig("latency_report.png")
-    print("Report saved as latency_report.png")
+    logger.info("Report saved as latency_report.png")
 
     # Summary Statistics
     summary = {
@@ -71,8 +74,9 @@ def generate_report() -> None:
 
     with open("summary_stats.json", "w") as f:
         json.dump(summary, f, indent=4)
-    print("Summary stats saved as summary_stats.json")
+    logger.info("Summary stats saved as summary_stats.json")
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     generate_report()

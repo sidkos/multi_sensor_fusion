@@ -3,12 +3,15 @@ Tests for Camera-specific KPIs.
 Validates latency, error rate, and data drop rate for the camera sensor.
 """
 
+import logging
 from typing import Dict, List, Optional, Union
 
 import pytest
 
 from src.data_loader import JSONValue
 from src.kpi_calculator import KPICalculator
+
+logger = logging.getLogger(__name__)
 
 CAMERA_LATENCY_MAX = 50
 CAMERA_ERROR_RATE_MAX = 0.001
@@ -36,6 +39,7 @@ def test_camera_per_frame_kpis(
 
     camera_data: List[Dict[str, JSONValue]] = [frame for frame in camera_data_raw if isinstance(frame, dict)]
 
+    values: List[float] = []
     for frame in camera_data:
         if kpi_name == "latency":
             val = frame.get("latency_ms")
@@ -43,7 +47,13 @@ def test_camera_per_frame_kpis(
             val = frame.get("error_rate_percent")
 
         if isinstance(val, (int, float)):
+            values.append(float(val))
             assert val < threshold
+
+    if values:
+        avg_val = sum(values) / len(values)
+        max_val = max(values)
+        logger.info(f"Camera {kpi_name} - Avg: {avg_val:.4f}, Max: {max_val:.4f} (Threshold: {threshold})")
 
 
 @pytest.mark.camera
@@ -63,4 +73,5 @@ def test_camera_drop_rate(
     expected_ts: List[int] = [ts for ts in expected_ts_raw if isinstance(ts, int)]
 
     drop_rate = KPICalculator.calculate_data_drop_rate(camera_data, expected_ts)
+    logger.info(f"Camera Drop Rate: {drop_rate:.4f} (Threshold: {CAMERA_DATA_DROP_MAX})")
     assert drop_rate < CAMERA_DATA_DROP_MAX

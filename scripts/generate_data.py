@@ -4,8 +4,11 @@ Produces radar_data.jsonl, camera_data.jsonl, and fused_data.jsonl with realisti
 """
 
 import json
+import logging
 import os
 import random
+
+logger = logging.getLogger(__name__)
 
 
 def generate_radar_data(filename: str, num_frames: int = 100, start_ts: int = 1000) -> None:
@@ -103,8 +106,9 @@ def generate_fused_data(filename: str, num_frames: int = 100, start_ts: int = 11
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     os.makedirs("data", exist_ok=True)
     generate_radar_data("data/radar_data.jsonl")
     generate_camera_data("data/camera_data.jsonl")
     generate_fused_data("data/fused_data.jsonl")
-    print("Synthetic data generated in data/ folder.")
+    logger.info("Synthetic data generated in data/ folder.")
