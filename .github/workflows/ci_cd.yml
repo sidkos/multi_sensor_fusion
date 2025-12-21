@@ -107,7 +107,7 @@ jobs:
 
       - name: Run Validation Tests in Docker
         run: |
-          docker run --rm -v ${{ github.workspace }}:/app_output ghcr.io/${{ github.repository }}:latest bash -c "pytest -m 'not infrastructure'; EXIT_CODE=\$?; cp -r reports/ /app_output/ && chmod -R 666 /app_output/reports/; exit \$EXIT_CODE"
+          docker run --rm -v ${{ github.workspace }}:/app_output ghcr.io/${{ github.repository }}:latest bash -c "pytest -m 'not infrastructure'; EXIT_CODE=\$?; cp -r reports/ /app_output/ && chmod -R 777 /app_output/reports/ && chown -R 1001:1001 /app_output/reports/; exit \$EXIT_CODE"
           ls -R reports/
 
       - name: Upload Validation Artifacts
