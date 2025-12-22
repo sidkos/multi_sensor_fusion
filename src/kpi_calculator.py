@@ -6,7 +6,7 @@ Includes calculations for mandatory KPIs and advanced performance metrics.
 import math
 from typing import Dict, List, Optional
 
-from src.models import BaseFrame, FusedFrame
+from src.models import BaseFrame, CameraFrame, FusedFrame, RadarFrame
 
 
 class KPICalculator:
@@ -194,3 +194,96 @@ class KPICalculator:
             return {"both": 0.0, "camera_only": 0.0, "radar_only": 0.0}
 
         return {"both": both / total, "camera_only": camera_only / total, "radar_only": radar_only / total}
+
+    @staticmethod
+    def validate_fusion_value_correctness(
+        fused_frame: FusedFrame,
+        radar_frame: Optional[RadarFrame],
+        camera_frame: Optional[CameraFrame],
+    ) -> List[str]:
+        """Performs a deep value-level validation of the fusion output.
+
+        This method verifies that the data within a fused frame correctly reflects
+        the raw sensor inputs from the corresponding timestamp. It checks for:
+        1. Coordinate preservation: Bounding boxes and radar points must match
+           exactly between the sensor source and the fused object.
+        2. Classification integrity: The source classes declared in the fusion
+           result must match the original sensor detections.
+        3. Data isolation: Ensures no data mixing or "ghost" data is introduced.
+
+        Args:
+            fused_frame (FusedFrame): The fusion output frame at timestamp T.
+            radar_frame (Optional[RadarFrame]): The raw radar frame at T-100ms.
+            camera_frame (Optional[CameraFrame]): The raw camera frame at T-100ms.
+
+        Returns:
+            List[str]: A list of error messages describing any value mismatches
+                found. Returns an empty list if validation passes.
+        """
+        failures = []
+
+        for f_obj in fused_frame.fused_objects:
+            found_in_source = False
+
+            # 1. Validate Camera Source Data
+            if "camera" in f_obj.source_classes and camera_frame:
+                c_class_expected = f_obj.source_classes["camera"]
+                # Find matching object in camera frame by class and exact bbox coordinates
+                matching_c_obj = next(
+                    (
+                        obj
+                        for obj in camera_frame.objects
+                        if obj.object_class == c_class_expected and obj.bbox_3d == f_obj.camera_bbox_3d
+                    ),
+                    None,
+                )
+                if not matching_c_obj:
+                    failures.append(
+                        f"Frame {fused_frame.timestamp}: Fused object {f_obj.object_class} "
+                        f"(from camera {c_class_expected}) has bbox data that doesn't match "
+                        f"any object in raw camera frame {camera_frame.timestamp}."
+                    )
+                else:
+                    found_in_source = True
+
+            # 2. Validate Radar Source Data
+            if "radar" in f_obj.source_classes and radar_frame:
+                r_class_expected = f_obj.source_classes["radar"]
+
+                # Convert radar points to list of dicts for comparison
+                r_frame_pts_dicts = [
+                    {
+                        "x": p.x,
+                        "y": p.y,
+                        "z": p.z,
+                        "signal_strength": p.signal_strength,
+                        "doppler_velocity": p.doppler_velocity,
+                    }
+                    for p in radar_frame.points
+                    if p.object_class == r_class_expected
+                ]
+
+                # Check if all points in fused object exist exactly in the radar source
+                all_pts_match = True
+                for p_fused in f_obj.radar_points:
+                    if p_fused not in r_frame_pts_dicts:
+                        all_pts_match = False
+                        break
+
+                if not all_pts_match:
+                    failures.append(
+                        f"Frame {fused_frame.timestamp}: Fused object {f_obj.object_class} "
+                        f"(from radar {r_class_expected}) has radar points that don't match "
+                        f"raw radar frame {radar_frame.timestamp}."
+                    )
+                else:
+                    found_in_source = True
+
+            # 3. Source Attribution Check
+            if not found_in_source:
+                failures.append(
+                    f"Frame {fused_frame.timestamp}: Fused object {f_obj.object_class} "
+                    "has no matching source data in sensors from corresponding timestamp."
+                )
+
+        return failures

@@ -6,7 +6,7 @@ with open("requirements.txt") as f:
 setup(
     name="multi_sensor_fusion",
     version="0.1.0",
-    description="Sensor Fusion Automation Test Suite for validating performance and consistency of a sensor fusion module.",
+    description="Sensor Fusion Automation Test Suite for validating performance and consistency.",
     packages=find_packages(where="."),
     install_requires=install_requires,
     python_requires=">=3.11",

@@ -15,6 +15,8 @@ The framework is built with scalability and CI/CD integration at its core, utili
     - **Data Drop Rate**: Detects missing or corrupted frames over the 10s recording window (< 0.5%).
     - **Alignment Jitter**: Measures the temporal precision of data synchronization (<= 5ms).
     - **Decision Consistency**: Compares fused classifications against source sensor modality decisions (>= 0.95).
+    - **Fusion Data Presence**: Ensures structural integrity by verifying that every fused object contains the actual sensor data (3D bounding boxes or radar points) from its declared source modalities.
+    - **Fusion Value Correctness**: Performs a deep value-level validation by cross-referencing fused data against raw sensor sources, ensuring that coordinates and classifications are perfectly preserved during the fusion process.
 - **Advanced Performance Metrics (Extended KPIs)**:
     - **Confidence Stability Score**: Calculates the standard deviation of fusion confidence to detect algorithmic instability.
     - **Spatial Alignment Error**: Measures the Euclidean distance between camera 3D bounding box centers and radar point clusters to detect calibration drift.
@@ -116,9 +118,24 @@ The following reports are automatically generated to provide a multi-dimensional
 6.  **`spatial_alignment.png`**:
     - **What it represents**: The Euclidean distance between camera 3D bounding box centers and radar point clusters over time.
     - **Key Indicators**: Monitors "spatial drift." An increasing trend or high variance may indicate calibration misalignment between the sensors.
-7.  **`summary_stats.json`**:
+7.  **`kpi_heatmap.png`**:
+    - **What it represents**: A global compliance matrix showing Pass/Fail status for all mandatory KPIs across Radar, Camera, and Fusion.
+    - **Key Indicators**: Green cells indicate compliance, while red cells highlight specific areas requiring engineering attention.
+8.  **`confidence_stability.png`**:
+    - **What it represents**: A trend analysis of fusion confidence scores across all frames.
+    - **Key Indicators**: Detects "flickering" or unstable detections. High variance in confidence levels suggests algorithmic instability.
+9.  **`sensor_contribution.png`**:
+    - **What it represents**: A distribution chart showing the ratio of objects fused from both sensors vs. single-sensor detections.
+    - **Key Indicators**: Identifies "sensor starvation" (e.g., if the system relies 90% on Radar, the Camera might be miscalibrated or ignored).
+10. **`spatial_drift_scatter.png`**:
+    - **What it represents**: A 2D mapping of (X, Y) offsets between Camera and Radar detections.
+    - **Key Indicators**: Identifies directional biases in calibration (e.g., if Radar is consistently shifted 0.5m to the right).
+11. **`data_drop_step.png`**:
+    - **What it represents**: A cumulative step chart of data drops for each sensor throughout the recording.
+    - **Key Indicators**: Identifies if data drops are random or clustered (e.g., a sudden jump indicates a burst of packet loss or CPU contention).
+12. **`summary_stats.json`**:
     - **What it represents**: A structured JSON file containing aggregate metrics (average latencies, stability scores, contribution balance) and the overall test session exit status.
-8.  **`test_execution.log`**:
+13. **`test_execution.log`**:
     - **What it represents**: A comprehensive audit trail of the test session, documenting every test case, its description, and a detailed list of every per-frame violation detected.
 
 ## Static Code Analysis
@@ -129,13 +146,14 @@ Before contributing, run the pre-commit suite to ensure compliance with the proj
 ```
 
 ## KPI Test Frequency Justification
-To optimize the multidisciplinary development lifecycle, we apply a tiered testing strategy:
+
+To optimize the multidisciplinary development lifecycle, we apply a tiered testing strategy that balances rapid developer feedback with deep system-level validation:
 
 | Frequency | KPIs Included | Justification |
 | :--- | :--- | :--- |
-| **Every Commit** | Latency, Drop Rate, Consistency | **Safety Critical**: These metrics catch immediate regressions in real-time performance and core decision logic. |
-| **Nightly** | Error Rate, Alignment Jitter | **Resource/Noise**: These metrics require longer durations or are sensitive to environmental noise; nightly runs provide stable trends. |
-| **Pre-release** | Spatial Error, Stability, Balance | **System Tuning**: These catch long-term drift or architectural imbalances that are typically addressed during integration phases. |
+| **Every Commit** | Latency, Drop Rate, Consistency, Jitter, Data Presence, Value Correctness | **Safety Critical**: These metrics catch immediate regressions in real-time performance, timing precision, and core functional logic. Every code change must maintain the structural and numerical integrity of the fusion output. |
+| **Nightly** | Error Rate | **Statistical Stability**: Sensor-reported error rates can fluctuate based on environment simulation noise. Nightly runs on larger datasets provide stable performance trends without blocking fast PR iterations. |
+| **Pre-release** | Spatial Error, Stability, Balance | **System Tuning & Calibration**: These metrics identify long-term spatial drift, algorithmic "flickering," or sensor starvation. They are typically used for fine-tuning sensor weights and calibration parameters during integration phases. |
 
 ## Future Roadmap & Improvements
 To further evolve the automation framework and perception system, the following enhancements are planned:
