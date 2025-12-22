@@ -8,8 +8,8 @@ import logging
 import os
 from typing import Any, Dict, List, Optional
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 from src.data_loader import DataLoader
 from src.kpi_calculator import KPICalculator
@@ -47,17 +47,13 @@ def plot_kpi_compliance_heatmap(
     if radar_data:
         data_matrix[0, 0] = 1 if all(f.latency_ms < THRESHOLDS["Radar"]["Latency"] for f in radar_data) else 0
         data_matrix[1, 0] = (
-            1
-            if all((f.error_rate_percent or 0) < THRESHOLDS["Radar"]["Error Rate"] for f in radar_data)
-            else 0
+            1 if all((f.error_rate_percent or 0) < THRESHOLDS["Radar"]["Error Rate"] for f in radar_data) else 0
         )
     # Camera
     if camera_data:
         data_matrix[0, 1] = 1 if all(f.latency_ms < THRESHOLDS["Camera"]["Latency"] for f in camera_data) else 0
         data_matrix[1, 1] = (
-            1
-            if all((f.error_rate_percent or 0) < THRESHOLDS["Camera"]["Error Rate"] for f in camera_data)
-            else 0
+            1 if all((f.error_rate_percent or 0) < THRESHOLDS["Camera"]["Error Rate"] for f in camera_data) else 0
         )
     # Fusion
     if fused_data:
@@ -71,13 +67,11 @@ def plot_kpi_compliance_heatmap(
             else 0
         )
         data_matrix[4, 2] = (
-            1
-            if all(f.data_alignment_jitter_ms <= THRESHOLDS["Fusion"]["Jitter"] for f in fused_data)
-            else 0
+            1 if all(f.data_alignment_jitter_ms <= THRESHOLDS["Fusion"]["Jitter"] for f in fused_data) else 0
         )
 
     fig, ax = plt.subplots(figsize=(8, 6))
-    im = ax.imshow(data_matrix, cmap="RdYlGn", aspect="auto")
+    ax.imshow(data_matrix, cmap="RdYlGn", aspect="auto")
 
     ax.set_xticks(np.arange(len(sensors)))
     ax.set_yticks(np.arange(len(kpis)))
@@ -324,9 +318,7 @@ def generate_report(
     plt.close()
 
     # 6. KPI Compliance Heatmap
-    plot_kpi_compliance_heatmap(
-        radar_data, camera_data, fused_data, os.path.join(output_dir, "kpi_heatmap.png")
-    )
+    plot_kpi_compliance_heatmap(radar_data, camera_data, fused_data, os.path.join(output_dir, "kpi_heatmap.png"))
 
     # 7. Fusion Confidence Stability Trend
     plot_confidence_stability_trend(fused_data, os.path.join(output_dir, "confidence_stability.png"))
