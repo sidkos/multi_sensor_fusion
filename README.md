@@ -116,9 +116,24 @@ The following reports are automatically generated to provide a multi-dimensional
 6.  **`spatial_alignment.png`**:
     - **What it represents**: The Euclidean distance between camera 3D bounding box centers and radar point clusters over time.
     - **Key Indicators**: Monitors "spatial drift." An increasing trend or high variance may indicate calibration misalignment between the sensors.
-7.  **`summary_stats.json`**:
+7.  **`kpi_heatmap.png`**:
+    - **What it represents**: A global compliance matrix showing Pass/Fail status for all mandatory KPIs across Radar, Camera, and Fusion.
+    - **Key Indicators**: Green cells indicate compliance, while red cells highlight specific areas requiring engineering attention.
+8.  **`confidence_stability.png`**:
+    - **What it represents**: A trend analysis of fusion confidence scores across all frames.
+    - **Key Indicators**: Detects "flickering" or unstable detections. High variance in confidence levels suggests algorithmic instability.
+9.  **`sensor_contribution.png`**:
+    - **What it represents**: A distribution chart showing the ratio of objects fused from both sensors vs. single-sensor detections.
+    - **Key Indicators**: Identifies "sensor starvation" (e.g., if the system relies 90% on Radar, the Camera might be miscalibrated or ignored).
+10. **`spatial_drift_scatter.png`**:
+    - **What it represents**: A 2D mapping of (X, Y) offsets between Camera and Radar detections.
+    - **Key Indicators**: Identifies directional biases in calibration (e.g., if Radar is consistently shifted 0.5m to the right).
+11. **`data_drop_step.png`**:
+    - **What it represents**: A cumulative step chart of data drops for each sensor throughout the recording.
+    - **Key Indicators**: Identifies if data drops are random or clustered (e.g., a sudden jump indicates a burst of packet loss or CPU contention).
+12. **`summary_stats.json`**:
     - **What it represents**: A structured JSON file containing aggregate metrics (average latencies, stability scores, contribution balance) and the overall test session exit status.
-8.  **`test_execution.log`**:
+13. **`test_execution.log`**:
     - **What it represents**: A comprehensive audit trail of the test session, documenting every test case, its description, and a detailed list of every per-frame violation detected.
 
 ## Static Code Analysis

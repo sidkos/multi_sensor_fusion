@@ -8,6 +8,7 @@ import logging
 import os
 from typing import Any, Dict, List, Optional
 
+import numpy as np
 import matplotlib.pyplot as plt
 
 from src.data_loader import DataLoader
@@ -15,6 +16,205 @@ from src.kpi_calculator import KPICalculator
 from src.models import CameraFrame, FusedFrame, RadarFrame
 
 logger = logging.getLogger(__name__)
+
+
+def plot_kpi_compliance_heatmap(
+    radar_data: List[RadarFrame],
+    camera_data: List[CameraFrame],
+    fused_data: List[FusedFrame],
+    output_path: str,
+) -> None:
+    """Generates a heatmap showing KPI compliance across different sensor modalities.
+
+    Args:
+        radar_data (List[RadarFrame]): List of radar data frames.
+        camera_data (List[CameraFrame]): List of camera data frames.
+        fused_data (List[FusedFrame]): List of fused data frames.
+        output_path (str): File path to save the generated heatmap.
+    """
+    kpis = ["Latency", "Error Rate", "Data Drop", "Consistency", "Jitter"]
+    sensors = ["Radar", "Camera", "Fusion"]
+    data_matrix = np.zeros((len(kpis), len(sensors)))
+
+    # Thresholds
+    THRESHOLDS = {
+        "Radar": {"Latency": 50, "Error Rate": 0.001, "Data Drop": 0.005},
+        "Camera": {"Latency": 50, "Error Rate": 0.001, "Data Drop": 0.005},
+        "Fusion": {"Latency": 100, "Consistency": 0.95, "Jitter": 5},
+    }
+
+    # Radar
+    if radar_data:
+        data_matrix[0, 0] = 1 if all(f.latency_ms < THRESHOLDS["Radar"]["Latency"] for f in radar_data) else 0
+        data_matrix[1, 0] = (
+            1
+            if all((f.error_rate_percent or 0) < THRESHOLDS["Radar"]["Error Rate"] for f in radar_data)
+            else 0
+        )
+    # Camera
+    if camera_data:
+        data_matrix[0, 1] = 1 if all(f.latency_ms < THRESHOLDS["Camera"]["Latency"] for f in camera_data) else 0
+        data_matrix[1, 1] = (
+            1
+            if all((f.error_rate_percent or 0) < THRESHOLDS["Camera"]["Error Rate"] for f in camera_data)
+            else 0
+        )
+    # Fusion
+    if fused_data:
+        data_matrix[0, 2] = 1 if all(f.latency_ms < THRESHOLDS["Fusion"]["Latency"] for f in fused_data) else 0
+        data_matrix[3, 2] = (
+            1
+            if all(
+                KPICalculator.calculate_decision_consistency(f) >= THRESHOLDS["Fusion"]["Consistency"]
+                for f in fused_data
+            )
+            else 0
+        )
+        data_matrix[4, 2] = (
+            1
+            if all(f.data_alignment_jitter_ms <= THRESHOLDS["Fusion"]["Jitter"] for f in fused_data)
+            else 0
+        )
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+    im = ax.imshow(data_matrix, cmap="RdYlGn", aspect="auto")
+
+    ax.set_xticks(np.arange(len(sensors)))
+    ax.set_yticks(np.arange(len(kpis)))
+    ax.set_xticklabels(sensors)
+    ax.set_yticklabels(kpis)
+
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+
+    for i in range(len(kpis)):
+        for j in range(len(sensors)):
+            val = "Pass" if data_matrix[i, j] == 1 else "Fail"
+            # Disable markers for N/A cells
+            if sensors[j] == "Radar" and kpis[i] in ["Consistency", "Jitter"]:
+                val = "N/A"
+            if sensors[j] == "Camera" and kpis[i] in ["Consistency", "Jitter"]:
+                val = "N/A"
+            if sensors[j] == "Fusion" and kpis[i] in ["Error Rate", "Data Drop"]:
+                val = "N/A"
+            ax.text(j, i, val, ha="center", va="center", color="black")
+
+    ax.set_title("KPI Compliance Heatmap")
+    fig.tight_layout()
+    plt.savefig(output_path)
+    plt.close()
+
+
+def plot_confidence_stability_trend(fused_data: List[FusedFrame], output_path: str) -> None:
+    """Tracks the stability of the fusion module's confidence over time.
+
+    Args:
+        fused_data (List[FusedFrame]): List of fused data frames.
+        output_path (str): File path to save the generated trend plot.
+    """
+    plt.figure(figsize=(10, 5))
+    for i, frame in enumerate(fused_data):
+        for j, obj in enumerate(frame.fused_objects):
+            plt.scatter(i, obj.fused_confidence, color="blue", alpha=0.5, s=10)
+
+    plt.title("Fusion Confidence Stability Trend")
+    plt.xlabel("Frame Index")
+    plt.ylabel("Fused Confidence")
+    plt.grid(True, linestyle="--", alpha=0.7)
+    plt.savefig(output_path)
+    plt.close()
+
+
+def plot_sensor_contribution_pie(fused_data: List[FusedFrame], output_path: str) -> None:
+    """Visualizes the balance of sensor data used in the final fusion output.
+
+    Args:
+        fused_data (List[FusedFrame]): List of fused data frames.
+        output_path (str): File path to save the generated pie chart.
+    """
+    balance = KPICalculator.calculate_sensor_contribution_balance(fused_data)
+    labels = ["Both Sensors", "Camera-Only", "Radar-Only"]
+    sizes = [balance["both"], balance["camera_only"], balance["radar_only"]]
+    colors = ["#ff9999", "#66b3ff", "#99ff99"]
+
+    plt.figure(figsize=(8, 8))
+    plt.pie(sizes, labels=labels, colors=colors, autopct="%1.1f%%", startangle=140)
+    plt.title("Sensor Contribution Balance")
+    plt.savefig(output_path)
+    plt.close()
+
+
+def plot_spatial_alignment_scatter(fused_data: List[FusedFrame], output_path: str) -> None:
+    """Maps the spatial error in a 2D plane (X-Y drift).
+
+    Args:
+        fused_data (List[FusedFrame]): List of fused data frames.
+        output_path (str): File path to save the generated scatter plot.
+    """
+    x_offsets = []
+    y_offsets = []
+
+    for frame in fused_data:
+        for obj in frame.fused_objects:
+            cam_bbox = obj.camera_bbox_3d
+            radar_pts = obj.radar_points
+            if cam_bbox and radar_pts:
+                cam_x = sum(float(p["x"]) for p in cam_bbox) / len(cam_bbox)
+                cam_y = sum(float(p["y"]) for p in cam_bbox) / len(cam_bbox)
+                radar_x = sum(float(p["x"]) for p in radar_pts) / len(radar_pts)
+                radar_y = sum(float(p["y"]) for p in radar_pts) / len(radar_pts)
+                x_offsets.append(cam_x - radar_x)
+                y_offsets.append(cam_y - radar_y)
+
+    plt.figure(figsize=(8, 8))
+    plt.scatter(x_offsets, y_offsets, alpha=0.6, color="purple")
+    plt.axhline(0, color="black", linestyle="--", alpha=0.3)
+    plt.axvline(0, color="black", linestyle="--", alpha=0.3)
+    plt.xlabel("X Offset (Camera - Radar)")
+    plt.ylabel("Y Offset (Camera - Radar)")
+    plt.title("Spatial Alignment Scatter (X-Y Drift)")
+    plt.grid(True, linestyle=":", alpha=0.6)
+    plt.savefig(output_path)
+    plt.close()
+
+
+def plot_cumulative_data_drop(
+    radar_data: List[RadarFrame],
+    camera_data: List[CameraFrame],
+    output_path: str,
+) -> None:
+    """Shows when data drops occur throughout the recording.
+
+    Args:
+        radar_data (List[RadarFrame]): List of radar data frames.
+        camera_data (List[CameraFrame]): List of camera data frames.
+        output_path (str): File path to save the generated step chart.
+    """
+    expected_ts = list(range(1000, 1000 + 100 * 100, 100))
+
+    def get_cumulative_drops(data: List[Any], expected: List[int]) -> List[int]:
+        """Calculates cumulative count of missing frames."""
+        received_ts = {f.timestamp for f in data if f}
+        drops = []
+        count = 0
+        for ts in expected:
+            if ts not in received_ts:
+                count += 1
+            drops.append(count)
+        return drops
+
+    radar_drops = get_cumulative_drops(radar_data, expected_ts)
+    camera_drops = get_cumulative_drops(camera_data, expected_ts)
+
+    plt.figure(figsize=(10, 5))
+    plt.step(range(len(expected_ts)), radar_drops, label="Radar Drops", where="post", color="blue")
+    plt.step(range(len(expected_ts)), camera_drops, label="Camera Drops", where="post", color="orange")
+    plt.title("Cumulative Data Drop Rate (Step Chart)")
+    plt.xlabel("Frame Index")
+    plt.ylabel("Total Drops")
+    plt.legend()
+    plt.grid(True, linestyle=":", alpha=0.6)
+    plt.savefig(output_path)
+    plt.close()
 
 
 def generate_report(
@@ -113,8 +313,8 @@ def generate_report(
     plt.close()
 
     # 5. Spatial Alignment Error Over Time
-    plt.figure(figsize=(10, 5))
     spatial_errors = [KPICalculator.calculate_spatial_alignment_error(f) for f in fused_data]
+    plt.figure(figsize=(10, 5))
     plt.plot(spatial_errors, marker="o", linestyle="-", color="coral", markersize=4)
     plt.title("Spatial Alignment Error Over Time")
     plt.xlabel("Frame index")
@@ -123,9 +323,26 @@ def generate_report(
     plt.savefig(os.path.join(output_dir, "spatial_alignment.png"))
     plt.close()
 
+    # 6. KPI Compliance Heatmap
+    plot_kpi_compliance_heatmap(
+        radar_data, camera_data, fused_data, os.path.join(output_dir, "kpi_heatmap.png")
+    )
+
+    # 7. Fusion Confidence Stability Trend
+    plot_confidence_stability_trend(fused_data, os.path.join(output_dir, "confidence_stability.png"))
+
+    # 8. Sensor Contribution Pie Chart
+    plot_sensor_contribution_pie(fused_data, os.path.join(output_dir, "sensor_contribution.png"))
+
+    # 9. Spatial Alignment Scatter (X-Y Drift)
+    plot_spatial_alignment_scatter(fused_data, os.path.join(output_dir, "spatial_drift_scatter.png"))
+
+    # 10. Cumulative Data Drop Rate (Step Chart)
+    plot_cumulative_data_drop(radar_data, camera_data, os.path.join(output_dir, "data_drop_step.png"))
+
     logger.info(f"Individual reports saved in {output_dir}/")
 
-    # 6. Summary Statistics
+    # 11. Summary Statistics
     radar_latencies = [f.latency_ms for f in radar_data]
     camera_latencies = [f.latency_ms for f in camera_data]
     fusion_latencies = [f.latency_ms for f in fused_data]
