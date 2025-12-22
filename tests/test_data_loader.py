@@ -38,7 +38,9 @@ def test_load_non_existent_file() -> None:
     "content, expected_len, valid_indices",
     [
         (
-            '{"timestamp": 1000, "valid": true}\n{"timestamp": 1100, "malformed": }\n{"timestamp": 1200, "valid": true}\n',
+            '{"timestamp": 1000, "valid": true}\n'
+            '{"timestamp": 1100, "malformed": }\n'
+            '{"timestamp": 1200, "valid": true}\n',
             3,
             [0, 2],
         ),

@@ -15,6 +15,8 @@ The framework is built with scalability and CI/CD integration at its core, utili
     - **Data Drop Rate**: Detects missing or corrupted frames over the 10s recording window (< 0.5%).
     - **Alignment Jitter**: Measures the temporal precision of data synchronization (<= 5ms).
     - **Decision Consistency**: Compares fused classifications against source sensor modality decisions (>= 0.95).
+    - **Fusion Data Presence**: Ensures structural integrity by verifying that every fused object contains the actual sensor data (3D bounding boxes or radar points) from its declared source modalities.
+    - **Fusion Value Correctness**: Performs a deep value-level validation by cross-referencing fused data against raw sensor sources, ensuring that coordinates and classifications are perfectly preserved during the fusion process.
 - **Advanced Performance Metrics (Extended KPIs)**:
     - **Confidence Stability Score**: Calculates the standard deviation of fusion confidence to detect algorithmic instability.
     - **Spatial Alignment Error**: Measures the Euclidean distance between camera 3D bounding box centers and radar point clusters to detect calibration drift.
@@ -144,13 +146,14 @@ Before contributing, run the pre-commit suite to ensure compliance with the proj
 ```
 
 ## KPI Test Frequency Justification
-To optimize the multidisciplinary development lifecycle, we apply a tiered testing strategy:
+
+To optimize the multidisciplinary development lifecycle, we apply a tiered testing strategy that balances rapid developer feedback with deep system-level validation:
 
 | Frequency | KPIs Included | Justification |
 | :--- | :--- | :--- |
-| **Every Commit** | Latency, Drop Rate, Consistency | **Safety Critical**: These metrics catch immediate regressions in real-time performance and core decision logic. |
-| **Nightly** | Error Rate, Alignment Jitter | **Resource/Noise**: These metrics require longer durations or are sensitive to environmental noise; nightly runs provide stable trends. |
-| **Pre-release** | Spatial Error, Stability, Balance | **System Tuning**: These catch long-term drift or architectural imbalances that are typically addressed during integration phases. |
+| **Every Commit** | Latency, Drop Rate, Consistency, Jitter, Data Presence, Value Correctness | **Safety Critical**: These metrics catch immediate regressions in real-time performance, timing precision, and core functional logic. Every code change must maintain the structural and numerical integrity of the fusion output. |
+| **Nightly** | Error Rate | **Statistical Stability**: Sensor-reported error rates can fluctuate based on environment simulation noise. Nightly runs on larger datasets provide stable performance trends without blocking fast PR iterations. |
+| **Pre-release** | Spatial Error, Stability, Balance | **System Tuning & Calibration**: These metrics identify long-term spatial drift, algorithmic "flickering," or sensor starvation. They are typically used for fine-tuning sensor weights and calibration parameters during integration phases. |
 
 ## Future Roadmap & Improvements
 To further evolve the automation framework and perception system, the following enhancements are planned:

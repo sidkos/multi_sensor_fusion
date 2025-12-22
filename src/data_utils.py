@@ -19,7 +19,8 @@ def load_test_data() -> (
     fused objects, along with the theoretical expected timestamps for drop rate analysis.
 
     Returns:
-        Dict[str, Union[List[Optional[RadarFrame]], List[Optional[CameraFrame]], List[Optional[FusedFrame]], List[int]]]:
+        Dict[str, Union[List[Optional[RadarFrame]], List[Optional[CameraFrame]],
+                        List[Optional[FusedFrame]], List[int]]]:
             A dictionary containing:
             - "radar": List of RadarFrame objects or None for malformed lines.
             - "camera": List of CameraFrame objects or None.
