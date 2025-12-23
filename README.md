@@ -35,6 +35,7 @@ The project features a fully automated CI/CD pipeline implemented via GitHub Act
 
 ### Accessing Results & Artifacts:
 Performance reports and detailed logs are automatically generated and uploaded for every CI run:
+- **Test Summary**: Surfaced directly on the GitHub Actions "Summary" page for each job via `pmeier/pytest-results-action`, providing an immediate overview of passed and failed tests.
 - **Remote Results**: You can access the artifacts from the latest runs on the [Actions CI/CD Page](https://github.com/sidkos/multi_sensor_fusion/actions/workflows/ci_cd.yml). Select a specific run and scroll down to the "Artifacts" section to download the `validation-test-reports`.
 - **Local Results**: After running the suite locally, all artifacts (plots, JSON stats, and the execution log) are available in the `reports/` directory.
 

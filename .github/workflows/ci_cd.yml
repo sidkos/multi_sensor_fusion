@@ -56,8 +56,15 @@ jobs:
 
       - name: Run Unit Tests
         run: |
-          PYTHONPATH=. pytest -m infrastructure
+          PYTHONPATH=. pytest -m infrastructure --junitxml=unit-pytest.xml
           ls -R reports/
+
+      - name: Surface Unit Test Results
+        uses: pmeier/pytest-results-action@main
+        with:
+          path: unit-pytest.xml
+          summary: true
+        if: always()
 
       - name: Upload Test Artifacts
         if: always()
@@ -110,12 +117,19 @@ jobs:
         run: |
           docker run --rm -v ${{ github.workspace }}:/app_output \
             ghcr.io/${{ github.repository }}:latest \
-            bash -c "pytest -m 'not infrastructure'; EXIT_CODE=\$?; \
+            bash -c "pytest -m 'not infrastructure' --junitxml=/app_output/validation-pytest.xml; EXIT_CODE=\$?; \
             cp -r reports/ /app_output/ && \
             chmod -R 777 /app_output/reports/ && \
             chown -R 1001:1001 /app_output/reports/; \
             exit \$EXIT_CODE"
           ls -R reports/
+
+      - name: Surface Validation Test Results
+        uses: pmeier/pytest-results-action@main
+        with:
+          path: validation-pytest.xml
+          summary: true
+        if: always()
 
       - name: Upload Validation Artifacts
         if: always()
